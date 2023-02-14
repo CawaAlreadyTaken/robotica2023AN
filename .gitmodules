@@ -1,0 +1,3 @@
+[submodule "src/vision/src/vision/yolov3"]
+	path = src/vision/src/vision/yolov3
+	url = https://github.com/roboflow-ai/yolov3
