@@ -73,6 +73,7 @@ class VisionNode():
             data.z = rwCoordsParsed[2]
             data.index = cls
             self.publisher.publish(data)
+            print(data)
         else:
             print("No blocks found")
 

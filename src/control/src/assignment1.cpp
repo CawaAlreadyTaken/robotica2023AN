@@ -54,7 +54,9 @@ void moveRobot(Vector3f dest) {
 }
 
 void visionCallback(const vision::custMsg::ConstPtr& msg) {
+  std::cout<<"visionCallback"<<std::endl;
   if(is_moving) return;
+  std::cout << "after if visionCallback"<<std::endl;
   is_moving = true;
   std::cout << "Received vision message, starting to move..." << std::endl;
   std::cout << "x: " << msg->x << std::endl;
@@ -100,6 +102,9 @@ int main(int argc, char** argv) {
   ros::Subscriber sub =
       node.subscribe("/vision/blocksCoords", 1, visionCallback);
 
+  std::cout << "Waiting for vision message..." << std::endl;
+
+  /*
   jointState_msg_sim.position.resize(8);
   jointState_msg_sim.velocity.resize(8);
   jointState_msg_sim.effort.resize(8);
@@ -108,8 +113,11 @@ int main(int argc, char** argv) {
   JointStateVector q_des_init;
   q_des_init << -0.32, -0.78, -2.56, -1.63, -1.57, 3.49, 0,0;
   initFilter(q_des_init);
+  */
 
-  while (ros::ok());
+  while (ros::ok()) {
+    ros::spinOnce();
+  };
 
   return 0;
 }
