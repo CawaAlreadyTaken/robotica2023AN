@@ -1,4 +1,4 @@
-prefix=/home/stepo/rosCODIO/devel
+prefix=/home/stepo/robotica2023AN/devel
 
 Name: control
 Description: Description of control
