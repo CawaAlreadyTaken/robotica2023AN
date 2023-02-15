@@ -1,8 +1,8 @@
-prefix=/home/stepo/robotica2023AN/devel
+prefix=/home/alfredo/robotica2023AN/devel
 
 Name: vision
 Description: Description of vision
 Version: 0.0.0
-Cflags: -I/home/stepo/robotica2023AN/devel/include
+Cflags: -I/home/alfredo/robotica2023AN/devel/include
 Libs: -L${prefix}/lib 
 Requires: message_runtime
