@@ -49,12 +49,23 @@ class VisionNode():
         b = 0.59+pc1_pc0*0.5977499099999999+pc1_pc0*cos(0.523599)*a
         return [a, b]
 
+    def filterBoxes(self, boxes):
+        newBoxes = []
+        for b in boxes:
+            cx = b[0]+(b[2]-b[0])/2
+            cy = b[1]+(b[3]-b[1])/2
+            if (cx >= 678 and cx <= 1538 and cy >= 561 and cy <= 903):
+                newBoxes.append(b)
+        return newBoxes
+
     def getAndSend3dCoords(self, image):
         img = CvBridge().imgmsg_to_cv2(image)
         ris = self.model(img)
         boxes = ris[0].boxes.xyxy
         clss = ris[0].boxes.cls.numpy()
         confs = ris[0].boxes.conf.numpy()
+        boxes = self.filterBoxes(boxes)
+        print(boxes)
         # Iterate over each found block
         if (len(boxes) > 0):
             arr = boxes[0]
@@ -66,7 +77,7 @@ class VisionNode():
             realWorldCoords.append(self.TAVOLO_HEIGHT)
             rwCoordsParsed = [float(i) for i in realWorldCoords]
             # print(f"This should be an array of 3 items: {realWorldCoords}")
-            # print(f"Found block {cls[0]} at coordinates: {realWorldCoords}, with probability: {conf}")
+            print(f"Found block {cls} at coordinates: {realWorldCoords}, with probability: {conf}")
             data = custMsg()
             data.x = rwCoordsParsed[0]
             data.y = rwCoordsParsed[1]
