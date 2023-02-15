@@ -32,6 +32,11 @@ float OPEN_GRIP = 1;
 float CLOSE_GRIP = -0.1;
 float UP_HEIGHT = 0.55;
 float DOWN_HEIGHT = 0.79;
+int NUMBER_OF_CLASSES = 11;
+Vector3f FINAL_POSITIONS[] = {
+    Vector3f(1, 2, 3),
+    Vector3f(1, 2, 3)
+}
 
 // Publishers
 //std::shared_ptr<realtime_tools::RealtimePublisher<sensor_msgs::JointState> > pub_des_jstate_sim_rt;
