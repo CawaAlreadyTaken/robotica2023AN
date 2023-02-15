@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<sdf version="1.4">
+	<model name="X1-Y1-Z2">
+		<link name="link">
+			<static>true</static>
+
+			<visual name="visual">
+				<transparency>0.6</transparency>
+				<material>
+					<ambient>0 0.1 1 1</ambient>
+				</material>
+				<geometry>
+					<mesh>
+						<uri>model://X1-Y4-Z2/mesh/X1-Y4-Z2.stl</uri>
+						<scale>1 1 1</scale>
+					</mesh>
+				</geometry>
+			</visual>
+		</link>
+	</model>
+</sdf>
