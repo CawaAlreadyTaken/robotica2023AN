@@ -60,12 +60,9 @@ void visionCallback(const vision::custMsg::ConstPtr& msg) {
 
   Vector3f WorldCoords = Vector3f(msg->x, msg->y, msg->z);
   Vector3f Ur5Coords = invKin.fromWorldToUrd5(WorldCoords);
-  Vector3f finalDestination = invKin.fromWorldToUrd5(FINAL_POSITIONS[(msg->index)%NUMBER_OF_CLASSES]);
 
   getMoveAndDropObject(Ur5Coords, finalDestination);
-  sub.shutdown();  // Assignment1 only has one block
   is_moving = false;
-  exit(0);
 }
 
 void initFilter(const JointStateVector& joint_pos) {
