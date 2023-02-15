@@ -33,7 +33,7 @@ float CLOSE_GRIP = -0.1;
 float UP_HEIGHT = 0.55;
 float DOWN_HEIGHT = 0.79;
 int NUMBER_OF_CLASSES = 11;
-Vector3f FINAL_POSITIONS[] = {
+Eigen::Vector3f FINAL_POSITIONS[] = {
     Vector3f(1, 2, 3),
     Vector3f(1, 2, 3)
 }
