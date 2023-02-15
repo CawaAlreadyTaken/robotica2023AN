@@ -36,7 +36,7 @@ int NUMBER_OF_CLASSES = 11;
 Eigen::Vector3f FINAL_POSITIONS[] = {
     Eigen::Vector3f(1, 2, 3),
     Eigen::Vector3f(1, 2, 3)
-}
+};
 
 // Publishers
 //std::shared_ptr<realtime_tools::RealtimePublisher<sensor_msgs::JointState> > pub_des_jstate_sim_rt;
