@@ -8,7 +8,7 @@
 #include <Eigen/Dense>
 #include <realtime_tools/realtime_publisher.h>
 
-typedef  Eigen::Matrix<double, 8, 1> JointStateVector;
+typedef  Eigen::Matrix<double, 9, 1> JointStateVector;
 
 
 // Methods
@@ -28,10 +28,10 @@ double  loop_frequency = 1000.;
 double TIME_FOR_MOVING = 3.;
 double TIME_FOR_LOWERING_RISING = 3.;
 double TIME_FOR_CLOSING_OPENING = 1.;
-float OPEN_GRIP = 1;
-float CLOSE_GRIP = -0.1;
+float OPEN_GRIP = 0;
+float CLOSE_GRIP = 2.5;
 float UP_HEIGHT = 0.55;
-float DOWN_HEIGHT = 0.79;
+float DOWN_HEIGHT = 0.71;
 int NUMBER_OF_CLASSES = 11;
 Eigen::Vector3f FINAL_POSITIONS[] = {
     Eigen::Vector3f(0.65, 0.55, 1),

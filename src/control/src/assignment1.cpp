@@ -20,13 +20,14 @@ void send_des_jstate(const JointStateVector& joint_pos) {
 }
 
 void moveRobot(Vector3f dest, float height, float g, double time) {
+  int choice = 5;
   ros::Rate loop_rate(loop_frequency);
   dest(2) = height;
   Vector3f m(0, 0, pi);
   JointStateVector q_des;
   JointStateVector q_des_filtered;
   invKin.setDestinationPoint(dest,m,g);
-  invKin.getJointsPositions(q_des);
+  invKin.getJointsPositions(q_des, choice);
   while (loop_time < TIME_FOR_MOVING) {
     q_des_filtered = secondOrderFilter(q_des, loop_frequency, time);
     send_des_jstate(q_des_filtered);
@@ -83,6 +84,25 @@ JointStateVector secondOrderFilter(const JointStateVector& input,
   return filter_2;
 }
 
+void homing_procedure() {
+  int choice = 5;
+  Vector3f dest(0.2, -0.4, 0.58);
+  ros::Rate loop_rate(loop_frequency);
+  Vector3f m(0, 0, pi);
+  JointStateVector q_des;
+  JointStateVector q_des_filtered;
+  invKin.setDestinationPoint(dest,m,0);
+  invKin.getJointsPositions(q_des, choice);
+  while (loop_time < TIME_FOR_MOVING) {
+    q_des_filtered = secondOrderFilter(q_des, loop_frequency, TIME_FOR_MOVING);
+    send_des_jstate(q_des_filtered);
+    loop_time += (double)1 / loop_frequency;
+    ros::spinOnce();
+    loop_rate.sleep();
+  }
+  loop_time = 0;
+}
+
 int main(int argc, char** argv) {
   ros::init(argc, argv, "custom_joint_publisher");
   ros::NodeHandle node;
@@ -99,14 +119,17 @@ int main(int argc, char** argv) {
 
   std::cout << "Waiting for vision message..." << std::endl;
 
-  jointState_msg_sim.position.resize(8);
-  jointState_msg_sim.velocity.resize(8);
-  jointState_msg_sim.effort.resize(8);
-  jointState_msg_robot.data.resize(8);
+  jointState_msg_sim.position.resize(9);
+  jointState_msg_sim.velocity.resize(9);
+  jointState_msg_sim.effort.resize(9);
+  jointState_msg_robot.data.resize(9);
 
   JointStateVector q_des_init;
-  q_des_init << -0.32, -0.78, -2.56, -1.63, -1.57, 3.49, 0,0;
+  q_des_init << 0, 0, 0, 0, 0, 0, 0, 0, 0;
   initFilter(q_des_init);
+
+  homing_procedure();
+  std::cout << "Reached home" << std::endl;
 
   while (ros::ok()) {
     ros::spinOnce();

@@ -29,11 +29,10 @@ class InverseKinematic {
                 point = p;
         }
 
-        void getJointsPositions(Eigen::Matrix<double, 8, 1> & q_des0) {
+        void getJointsPositions(Eigen::Matrix<double, 9, 1> & q_des0, int scelta) {
                 Matrix<float, 8, 6> result = inverse_kin(point, R);
                 // TODO: Far la scelta tra le 8 opzioni
-                int scelta = 7;
-                q_des0 << result(scelta, 0), result(scelta, 1), result(scelta, 2), result(scelta, 3), result(scelta, 4), result(scelta, 5), _gripper, _gripper; 
+                q_des0 << result(scelta, 0), result(scelta, 1), result(scelta, 2), result(scelta, 3), result(scelta, 4), result(scelta, 5), _gripper, _gripper, _gripper; 
         }
 
         Vector3f fromWorldToUrd5(Vector3f p){
