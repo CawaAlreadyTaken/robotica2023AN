@@ -8,3 +8,6 @@ models/
 **/dataset
 **/runs
 **/__pycache__
+**/getImages
+**/getImagesStepo
+**/imageGenerator
