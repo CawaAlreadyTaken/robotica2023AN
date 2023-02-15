@@ -34,8 +34,8 @@ float UP_HEIGHT = 0.55;
 float DOWN_HEIGHT = 0.79;
 int NUMBER_OF_CLASSES = 11;
 Eigen::Vector3f FINAL_POSITIONS[] = {
-    Vector3f(1, 2, 3),
-    Vector3f(1, 2, 3)
+    Eigen::Vector3f(1, 2, 3),
+    Eigen::Vector3f(1, 2, 3)
 }
 
 // Publishers
