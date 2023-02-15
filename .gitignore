@@ -6,3 +6,4 @@ models/
 
 **/datasets
 **/runs
+**/__pycache__
