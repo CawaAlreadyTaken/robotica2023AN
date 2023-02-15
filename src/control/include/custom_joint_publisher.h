@@ -25,6 +25,13 @@ JointStateVector filter_2 = JointStateVector::Zero();
 
 double  loop_time = 0.;
 double  loop_frequency = 1000.;
+double TIME_FOR_MOVING = 3.;
+double TIME_FOR_LOWERING_RISING = 3.;
+double TIME_FOR_CLOSING_OPENING = 1.;
+float OPEN_GRIP = 1;
+float CLOSE_GRIP = -0.1;
+float UP_HEIGHT = 0.55;
+float DOWN_HEIGHT = 0.79;
 
 // Publishers
 //std::shared_ptr<realtime_tools::RealtimePublisher<sensor_msgs::JointState> > pub_des_jstate_sim_rt;

@@ -119,7 +119,7 @@ int main(int argc, char **argv)
       q_des = secondOrderFilter(q_des_fin, loop_frequency, 5.);
     } else {
       JointStateVector delta_q;
-      delta_q << 0., 0.4, 0., 0., 0., 0.,0.,0.,0.;
+      delta_q << 0., 0., 0., 0., 0., 0.,0.,0.,0.;
       //q_des = q_des0 + delta_q;
       q_des = secondOrderFilter(q_des0 + delta_q, loop_frequency, 5.);
     }

@@ -12,6 +12,7 @@ from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 import cv2
 import json
+from math import pi
 
 blocks = [
     ("X1-Y1-Z2", 0,),
@@ -122,20 +123,45 @@ spawner.__init__()
 spawner.updateModels()
 
 
-while (True):
-    n_blocks = randint(1, 5)
-    used_blocks = blocks
-    shuffle(used_blocks)
-    blocks_info = []
-    for i in range(n_blocks):
-        blocks_info.append({
-            "name": used_blocks[i][0],
-            "index": used_blocks[i][1],
-            "pos": spawner.randPos(),
-            "orient": [0, 0, 0]
-        })
-    ObjectSpawner.spawn(spawner, blocks_info, static=False)
-    time.sleep(2)
 
-    spawner.screenShot_and_label(blocks_info)
-    spawner.delete(blocks_info)
+# while (True):
+#     n_blocks = randint(1, 5)
+#     used_blocks = blocks
+#     shuffle(used_blocks)
+#     blocks_info = []
+#     for i in range(n_blocks):
+#         blocks_info.append({
+#             "name": used_blocks[i][0],
+#             "index": used_blocks[i][1],
+#             "pos": spawner.randPos(),
+#             "orient": [0, 0, 0]
+#         })
+#     ObjectSpawner.spawn(spawner, blocks_info, static=False)
+#     time.sleep(2)
+
+#     spawner.screenShot_and_label(blocks_info)
+#     spawner.delete(blocks_info)
+
+def delete_file(filename):
+    if os.path.exists(filename):
+        os.remove(filename)
+
+for i in blocks:
+    for angle in range(8):
+        blocks_info = []
+        blocks_info.append({
+            "name": i[0],
+            "index": i[1],
+            "pos": [0.05, 0.5, H/100],
+            "orient": [0, 0, angle * 2 * pi / 8]
+        })
+        ObjectSpawner.spawn(spawner, blocks_info, static=False)
+        time.sleep(2)
+
+        spawner.screenShot_and_label(blocks_info)
+        input("Press Enter to continue...")
+        delete_file("./dataset/imgs/0.jpg")
+        delete_file("./dataset/labels/0.txt")
+        img_counter = 0
+        spawner.delete(blocks_info)
+

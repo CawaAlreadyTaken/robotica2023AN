@@ -37,17 +37,17 @@ class InverseKinematic {
         }
 
         Vector3f fromWorldToUrd5(Vector3f p){
-                Matrix<float, 4, 4> T;
-                T << 0, 0, 1, 0.089159,
-                        -1, 0, 0, 0,
-                        0, -1, 0, 0.425,
-                        0, 0, 0, 1;
-                Vector4f p4;
-                p4 << p(0), p(1), p(2), 1;
-                Vector4f p4_ = T * p4;
-                Vector3f p3;
-                p3 << p4_(0), p4_(1), p4_(2);
-                return p3;
+                std::cout << "p: " << p << std::endl;
+                Vector3f Urd5Coords(0.501, 0.352, 1.754);
+                Vector3f result = p-Urd5Coords;
+                result(0) = result(0);
+                result(1) = -result(1);
+                result(2) = -result(2);
+                // std::cout << "ToUrd5Coords: " << p-Urd5Coords << std::endl;
+                // float a, b, c; std::cin >> a >> b >> c;
+                // return Vector3f(a, b, c);
+                std::cout << result << endl;
+                return result;
         }
 
         Matrix<float, 3, 3> getRotationMatrix(Vector3f m) {
