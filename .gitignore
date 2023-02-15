@@ -1,2 +1,8 @@
 build/
 **/*.weights
+.vscode/
+devel/
+models/
+
+**/datasets
+**/runs
