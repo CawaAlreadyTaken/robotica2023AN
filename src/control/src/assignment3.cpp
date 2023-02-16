@@ -44,12 +44,11 @@ void moveRobot(Vector3d dest, double height, double g, double time) {
 void getMoveAndDropObject(Vector3d initialPosition, Vector3d finalPosition, int index/*index della classe che spostiamo*/) {
   int blocks = counts[index];
   double scale_factor = 0.065;
-  cout << "moving class " << index << ", " << counts[index] << " blocks already there" << endl;
   moveRobot(initialPosition, UP_HEIGHT, OPEN_GRIP, TIME_FOR_MOVING);
   moveRobot(initialPosition, DOWN_HEIGHT, OPEN_GRIP, TIME_FOR_LOWERING_RISING);
   moveRobot(initialPosition, DOWN_HEIGHT, CLOSE_GRIP, TIME_FOR_CLOSING_OPENING);
   moveRobot(initialPosition, UP_HEIGHT, CLOSE_GRIP, TIME_FOR_LOWERING_RISING);
-  moveRobot(finalPosition, UP_HEIGHT - blocks * scale_factor, CLOSE_GRIP, TIME_FOR_MOVING); cout << "new height: " << UP_HEIGHT - blocks * scale_factor << endl;
+  moveRobot(finalPosition, UP_HEIGHT - blocks * scale_factor, CLOSE_GRIP, TIME_FOR_MOVING);
   moveRobot(finalPosition, DOWN_HEIGHT - blocks * scale_factor, CLOSE_GRIP, TIME_FOR_LOWERING_RISING);
   moveRobot(finalPosition, DOWN_HEIGHT - blocks * scale_factor, OPEN_GRIP, TIME_FOR_CLOSING_OPENING);
   moveRobot(finalPosition, UP_HEIGHT - blocks * scale_factor, OPEN_GRIP, TIME_FOR_LOWERING_RISING);
@@ -90,7 +89,7 @@ JointStateVector secondOrderFilter(const JointStateVector& input,
 
 int main(int argc, char** argv) {
   for(int i = 0; i < 11; i++) {
-    counts[i] = 1;
+    counts[i] = 0;
   }
   ros::init(argc, argv, "custom_joint_publisher");
   ros::NodeHandle node;
