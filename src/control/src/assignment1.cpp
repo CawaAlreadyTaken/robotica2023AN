@@ -5,7 +5,7 @@
 #include "inverseKin.cpp"
 
 const double pi = 2 * acos(0.0);
-Vector3f finalDestination;
+Vector3d finalDestination;
 ros::Subscriber sub;
 
 InverseKinematic invKin;
@@ -19,15 +19,15 @@ void send_des_jstate(const JointStateVector& joint_pos) {
   pub_des_jstate.publish(jointState_msg_robot);
 }
 
-void moveRobot(Vector3f dest, float height, float g, double time) {
+void moveRobot(Vector3d dest, double height, double g, double time) {
   int choice = 5;
   ros::Rate loop_rate(loop_frequency);
   dest(2) = height;
-  Vector3f m(0, 0, pi);
+  Vector3d m(0, 0, pi);
   JointStateVector q_des;
   JointStateVector q_des_filtered;
   invKin.setDestinationPoint(dest,m,g);
-  invKin.getJointsPositions(q_des, choice);
+  invKin.getJointsPositions(q_des);
   while (loop_time < TIME_FOR_MOVING) {
     q_des_filtered = secondOrderFilter(q_des, loop_frequency, time);
     send_des_jstate(q_des_filtered);
@@ -39,7 +39,7 @@ void moveRobot(Vector3f dest, float height, float g, double time) {
   std::cout << "Robot moved" << std::endl;
 }
 
-void getMoveAndDropObject(Vector3f initialPosition, Vector3f finalPosition) {
+void getMoveAndDropObject(Vector3d initialPosition, Vector3d finalPosition) {
   moveRobot(initialPosition, UP_HEIGHT, OPEN_GRIP, TIME_FOR_MOVING);
   moveRobot(initialPosition, DOWN_HEIGHT, OPEN_GRIP, TIME_FOR_LOWERING_RISING);
   moveRobot(initialPosition, DOWN_HEIGHT, CLOSE_GRIP, TIME_FOR_CLOSING_OPENING);
@@ -59,9 +59,9 @@ void visionCallback(const vision::custMsg::ConstPtr& msg) {
   std::cout << "z: " << msg->z << std::endl;
   std::cout << "index: " << msg->index << std::endl;
 
-  Vector3f WorldCoords = Vector3f(msg->x, msg->y, msg->z);
-  Vector3f Ur5Coords = invKin.fromWorldToUrd5(WorldCoords);
-  Vector3f finalDestination = invKin.fromWorldToUrd5(FINAL_POSITIONS[(msg->index)%NUMBER_OF_CLASSES]);
+  Vector3d WorldCoords = Vector3d(msg->x, msg->y, msg->z);
+  Vector3d Ur5Coords = invKin.fromWorldToUrd5(WorldCoords);
+  Vector3d finalDestination = invKin.fromWorldToUrd5(FINAL_POSITIONS[(msg->index)%NUMBER_OF_CLASSES]);
 
   getMoveAndDropObject(Ur5Coords, finalDestination);
   sub.shutdown();  // Assignment1 only has one block
@@ -85,14 +85,13 @@ JointStateVector secondOrderFilter(const JointStateVector& input,
 }
 
 void homing_procedure() {
-  int choice = 5;
-  Vector3f dest(0.2, -0.4, 0.58);
+  Vector3d dest(0.2, -0.4, 0.58);
   ros::Rate loop_rate(loop_frequency);
-  Vector3f m(0, 0, pi);
+  Vector3d m(0, 0, pi);
   JointStateVector q_des;
   JointStateVector q_des_filtered;
   invKin.setDestinationPoint(dest,m,0);
-  invKin.getJointsPositions(q_des, choice);
+  invKin.getJointsPositions(q_des);
   while (loop_time < TIME_FOR_MOVING) {
     q_des_filtered = secondOrderFilter(q_des, loop_frequency, TIME_FOR_MOVING);
     send_des_jstate(q_des_filtered);

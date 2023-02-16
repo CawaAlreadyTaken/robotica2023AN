@@ -102,7 +102,7 @@ int main(int argc, char **argv)
   
   // initFilter(q_des_init);
 
-  q_des_fin << 1, 1, 1, 1, 0, 0, 0, 0;
+  q_des_fin << 1, 1, 1, 1, 0, 0, 0, 0, 0;
   
   /*
   JointStateVector amp;
