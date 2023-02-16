@@ -4,6 +4,9 @@
 
 #include "inverseKin.cpp"
 
+int counts[11]; //how many classes already present in pile
+//to be updated when robot has done moving
+
 const double pi = 2 * acos(0.0);
 Vector3d finalDestination;
 ros::Subscriber sub;
@@ -38,15 +41,20 @@ void moveRobot(Vector3d dest, double height, double g, double time) {
   std::cout << "Robot moved" << std::endl;
 }
 
-void getMoveAndDropObject(Vector3d initialPosition, Vector3d finalPosition) {
+void getMoveAndDropObject(Vector3d initialPosition, Vector3d finalPosition, int index/*index della classe che spostiamo*/) {
+  int blocks = counts[index];
+  double scale_factor = 0.065;
+  cout << "moving class " << index << ", " << counts[index] << " blocks already there" << endl;
   moveRobot(initialPosition, UP_HEIGHT, OPEN_GRIP, TIME_FOR_MOVING);
   moveRobot(initialPosition, DOWN_HEIGHT, OPEN_GRIP, TIME_FOR_LOWERING_RISING);
   moveRobot(initialPosition, DOWN_HEIGHT, CLOSE_GRIP, TIME_FOR_CLOSING_OPENING);
   moveRobot(initialPosition, UP_HEIGHT, CLOSE_GRIP, TIME_FOR_LOWERING_RISING);
-  moveRobot(finalPosition, UP_HEIGHT, CLOSE_GRIP, TIME_FOR_MOVING);
-  moveRobot(finalPosition, DOWN_HEIGHT, CLOSE_GRIP, TIME_FOR_LOWERING_RISING);
-  moveRobot(finalPosition, DOWN_HEIGHT, OPEN_GRIP, TIME_FOR_CLOSING_OPENING);
-  moveRobot(finalPosition, UP_HEIGHT, OPEN_GRIP, TIME_FOR_LOWERING_RISING);
+  moveRobot(finalPosition, UP_HEIGHT - blocks * scale_factor, CLOSE_GRIP, TIME_FOR_MOVING); cout << "new height: " << UP_HEIGHT - blocks * scale_factor << endl;
+  moveRobot(finalPosition, DOWN_HEIGHT - blocks * scale_factor, CLOSE_GRIP, TIME_FOR_LOWERING_RISING);
+  moveRobot(finalPosition, DOWN_HEIGHT - blocks * scale_factor, OPEN_GRIP, TIME_FOR_CLOSING_OPENING);
+  moveRobot(finalPosition, UP_HEIGHT - blocks * scale_factor, OPEN_GRIP, TIME_FOR_LOWERING_RISING);
+
+  counts[index]++;
 }
 
 void visionCallback(const vision::custMsg::ConstPtr& msg) {
@@ -61,7 +69,7 @@ void visionCallback(const vision::custMsg::ConstPtr& msg) {
   Vector3d WorldCoords = Vector3d(msg->x, msg->y, msg->z);
   Vector3d Ur5Coords = invKin.fromWorldToUrd5(WorldCoords);
 
-  getMoveAndDropObject(Ur5Coords, finalDestination);
+  getMoveAndDropObject(Ur5Coords, finalDestination, ((int)msg->index)%11);
   is_moving = false;
 }
 
@@ -81,6 +89,9 @@ JointStateVector secondOrderFilter(const JointStateVector& input,
 }
 
 int main(int argc, char** argv) {
+  for(int i = 0; i < 11; i++) {
+    counts[i] = 1;
+  }
   ros::init(argc, argv, "custom_joint_publisher");
   ros::NodeHandle node;
   is_moving = false;
