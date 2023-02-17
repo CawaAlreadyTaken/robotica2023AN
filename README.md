@@ -51,7 +51,7 @@ Il controllo del robot per lo svolgimento degli assignment e' scritto in cpp. I 
 Una volta impostato il nome del ".world" corretto ed avviato il file python `ur5_generic.py` (vedi sopra) e' necessario avviare il nodo per la vision:
 ```sh
 $ source ~/robotica2023AN/devel/setup.bash
-$ python3 ~/robotica2023AN/src/vision/src/visionNode.py
+$ python3 ~/robotica2023AN/src/vision/src/visionNode.py >/dev/null &
 ```
 
 A questo punto e' sufficiente avviare l'eseguibile compilato dal cpp corretto. Scegliere tra:
