@@ -109,16 +109,22 @@ blocks = [
 ]
 block_radius = 0.05
 
-# this will be divided by 100
+#this will be divided by 100
 MIN_X = 5
-MAX_X = 95
+MAX_X = 35
 MIN_Y = 20
 MAX_Y = 75
 H = 87
 
+# MIN_X = 5
+# MAX_X = 95
+# MIN_Y = 20
+# MAX_Y = 75
+# H = 87
+
 img_msg = None
 
-img_counter = 0
+img_counter = 4710
 
 boxes = {}
 with open("boxes.json", "r") as f:
@@ -158,6 +164,7 @@ class ObjectSpawner(object):
     def screenShot_and_label(self, blocks_info):
         global img_counter
         img = CvBridge().imgmsg_to_cv2(img_msg)
+        print("saving image: ", img_counter)
         cv2.imwrite("./dataset/imgs/" + str(img_counter) + ".jpg", img)
         with open("./dataset/labels/" + str(img_counter) + ".txt", "w") as f:
             cont = ""
@@ -167,7 +174,6 @@ class ObjectSpawner(object):
                     np.matrix([[block["pos"][0]], [block["pos"][1]], [block["pos"][2]], [1]]))
                 cont += str(block["index"]) + " " + clear(img_pos[0]/1920) + " " + clear(img_pos[1]/1080) + " " + clear((block["cx"]-block["cx"]*0.5389*(902-img_pos[1])/480)/1920) + " " + clear((block["cy"]-block["cy"]*0.5389*(902-img_pos[1])/480)/1080) + "\n"
             f.write(cont)
-        img_counter += 1
 
     def randPos(self):
         x = randint(MIN_X, MAX_X)
@@ -245,11 +251,33 @@ class ObjectSpawner(object):
 spawner = ObjectSpawner()
 spawner.__init__()
 spawner.updateModels()
-spawner.cleanModels()
+#spawner.cleanModels()
 
 
-for _ in range(750):
-    n_blocks = randint(1, 5)
+# while(True):
+#     n_blocks = randint(1, 5)
+#     used_blocks = blocks
+#     shuffle(used_blocks)
+#     blocks_info = []
+#     for i in range(n_blocks):
+#         angle_index = int(used_blocks[i][1]/11)
+#         name = used_blocks[i][0].split("_")[0]
+#         blocks_info.append({
+#             "name": name,
+#             "index": used_blocks[i][1],
+#             "cx": boxes[name][angle_index]["size"][0],
+#             "cy": boxes[name][angle_index]["size"][1],
+#             "pos": spawner.randPos(),
+#             "orient": [0, 0, float(boxes[used_blocks[i][0].split("_")[0]][angle_index]["angle"]) * 2 * pi / 360],
+#         })
+#     spawner.spawn(blocks_info, static=False)
+#     time.sleep(1)
+#     spawner.screenShot_and_label(blocks_info)
+#     img_counter += 1
+#     spawner.delete(blocks_info)
+
+while(True):
+    n_blocks = 3
     used_blocks = blocks
     shuffle(used_blocks)
     blocks_info = []
@@ -262,12 +290,23 @@ for _ in range(750):
             "cx": boxes[name][angle_index]["size"][0],
             "cy": boxes[name][angle_index]["size"][1],
             "pos": spawner.randPos(),
-            "orient": [0, 0, float(boxes[used_blocks[i][0].split("_")[0]][angle_index]["angle"]) * 2 * pi / 8],
+            "orient": [0, 0, float(boxes[used_blocks[i][0].split("_")[0]][angle_index]["angle"]) * 2 * pi / 360],
         })
     spawner.spawn(blocks_info, static=False)
-    time.sleep(2)
+    time.sleep(1)
     spawner.screenShot_and_label(blocks_info)
+    #img_counter += 1
+    input("Press Enter to continue...")
     spawner.delete(blocks_info)
+
+# spawner.screenShot_and_label([{
+#     "name": "block_1",
+#     "index": 0,
+#     "cx": 0.1,
+#     "cy": 0.1,
+#     "pos": [0.5, 0.5, 0.5],
+#     "orient": [0, 0, 0]
+#     }])
     
 
 
