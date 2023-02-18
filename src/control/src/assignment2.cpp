@@ -5,7 +5,6 @@
 #include "inverseKin.cpp"
 
 const double pi = 2 * acos(0.0);
-Vector3d finalDestination;
 ros::Subscriber sub;
 
 InverseKinematic invKin;
@@ -61,7 +60,7 @@ void visionCallback(const vision::custMsg::ConstPtr& msg) {
   Vector3d WorldCoords = Vector3d(msg->x, msg->y, msg->z);
   Vector3d Ur5Coords = invKin.fromWorldToUrd5(WorldCoords);
 
-  getMoveAndDropObject(Ur5Coords, finalDestination);
+  getMoveAndDropObject(Ur5Coords, invKin.fromWorldToUrd5(Vector3d(FINAL_POSITIONS[msg->index%11][0], FINAL_POSITIONS[msg->index%11][1], DOWN_HEIGHT)));
   is_moving = false;
 }
 
@@ -86,7 +85,6 @@ int main(int argc, char** argv) {
   is_moving = false;
   node.getParam("/real_robot", real_robot);
   invKin = InverseKinematic();
-  finalDestination << 0.35, -0.35, DOWN_HEIGHT;
 
   pub_des_jstate = node.advertise<std_msgs::Float64MultiArray>(
       "/ur5/joint_group_pos_controller/command", 1);

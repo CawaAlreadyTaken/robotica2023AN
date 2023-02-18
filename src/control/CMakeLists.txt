@@ -47,10 +47,10 @@ install(TARGETS assignment2
 )
 
 
-add_executable(assignment3 src/assignment3.cpp)
-target_link_libraries(assignment3 ${catkin_LIBRARIES})
-install(TARGETS assignment3
-  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
+# add_executable(assignment3 src/assignment3.cpp)
+# target_link_libraries(assignment3 ${catkin_LIBRARIES})
+# install(TARGETS assignment3
+#   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+#   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+#   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+# )
