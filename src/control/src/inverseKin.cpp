@@ -9,12 +9,12 @@ using namespace Eigen;
 /*!
  * Classe per computare la soluzione analitica dell'inverse kinematic del braccio UR5, adattata dal paper: https://smartech.gatech.edu/bitstream/handle/1853/50782/ur_kin_tech_report_1.pdf?sequence=1
  */
-
 class InverseKinematic
 {
 
 	Matrix<double, 3, 3> R;
 	Vector3d point;
+  Matrix<double, 6, 1> current_position;
 	Matrix<double, 4, 4> T;
 	double pi;
 	Matrix<double, 6, 1> A;
@@ -30,6 +30,7 @@ public:
 		pi = 2 * acos(0.0);
 		A << 0.0, -0.425, -0.3922, 0.0, 0.0, 0.0;
 		D << 0.1625, 0.0, 0.0, 0.1333, 0.0997, 0.0996;
+    current_position << 0, 0, 0, 0, 0, 0; //first configuration of homing position
 	}
 
 	/*!
@@ -42,37 +43,68 @@ public:
 		point = p;
 	}
 
+  Vector3d fromUrd5ToWorld(Vector3d p) {
+    Vector4d homogeneous_p;
+    homogeneous_p << p(0), p(1), p(2), 1;
+    Vector3d Urd5Coords(0.501, 0.352, 1.754);
+    Matrix<double, 4, 4> r;
+    
+    r << 1, 0,  0, Urd5Coords(0),
+         0, -1, 0, Urd5Coords(1),
+         0, 0, -1, Urd5Coords(2),
+         0, 0, 0, 1;
+    return (r * homogeneous_p).head(3);
+
+    //Vector3d result = p;
+    //result(1) *= -1;
+    //result(2) *= -1;
+    //result = p + Urd5Coords;
+    //return result; 
+  }
+
 	int scelta(Matrix<double, 6, 1> q0, Matrix<double, 8, 6> joint_configurations)
 	{
-		if(!check_collisions(q0, joint_configurations.row(5))); return 5;
-		for (int i = 1; i < 7; i++)
+    if(!check_collisions(q0, joint_configurations.row(7))) {
+      cout << "no collisions, choice = 7" << endl; fflush(stdout);
+    }
+    int i = 0;
+		for (; i < 8; i++)
 		{
 			if (!check_collisions(q0, joint_configurations.row(i)))
 			{
+        cout << "no collisions, hopefully, choice = " << i << endl; fflush(stdout);
 				return i;
 			}
 		}
-
+    cout << "no solution found" << endl;
 		return -1;
 	}
 
 	bool check_collisions(Matrix<double, 6, 1> q0, Matrix<double, 6, 1> q1)
 	{
+    const double MURO = 0.23;
+    const double TAVOLO_ALTO = 1.75;
+    const double TAVOLO_BASSO = 0.87;
+
+    int nsamples = 100;
+
+
 		int i = 0;
-		double ts[100];
-		Matrix<double, 6, 1> samples[100];
-		for (int i = 0; i < 100; i++)
+		double ts[nsamples];
+		Matrix<double, 6, 1> samples[nsamples];
+		for (int i = 0; i < nsamples; i++)
 		{
-			ts[i] = 0.01 * i;
+			ts[i] = (double)(1 / (double)nsamples) * i;
+      cout << "time: " << ts[i] << endl;
 		}
 
 		// get 100 samples
-		for (int i = 0; i < 100; i++)
+		for (int i = 0; i < nsamples; i++)
 		{
 			samples[i] = line(q0, q1, ts[i]);
 		}
 
-		for (int i = 0; i < 100; i++)
+		for (int i = 1; i < nsamples; i++)
 		{
 			// for each sample
 			Matrix<double, 4, 4> T10 = rot(0, 0, D[0], samples[i][0]);
@@ -81,8 +113,7 @@ public:
 			Matrix<double, 4, 4> T43 = rot(0, A[2], D[3], samples[i][3]);
 			Matrix<double, 4, 4> T54 = rot(pi / 2, 0, D[4], samples[i][4]);
 			Matrix<double, 4, 4> T65 = rot(-pi / 2, 0, D[5], samples[i][5]);
-
-			Vector3d joints[6];
+      Vector3d joints[6];
 			Vector4d unit;
 			unit << 0, 0, 0, 1;
 			joints[0] = (T10 * unit).head(3);
@@ -92,23 +123,27 @@ public:
 			joints[4] = (T10 * T21 * T32 * T43 * T54 * unit).head(3);
 			joints[5] = (T10 * T21 * T32 * T43 * T54 * T65 * unit).head(3);
 
-			for (int j = 0; j < 6; j++)
+      
+			for (int j = 1; j < 6; j++)
 			{
+        Vector3d world_coords = fromUrd5ToWorld(joints[j]);
 
-				if (joints[j][0] < -0.85 || joints[j][0] > 0.85)
+        cout << "joint j" << j << "in position" << endl << world_coords << endl << endl;
+				if (world_coords(1) < MURO) // 0.23
 				{
+          cout << "joint j: " << j << ", y failed for this point: " << world_coords << endl << world_coords << endl;;
 					return true;
 				}
 
-				if (joints[j][1] < -0.9 || joints[j][1] > 0.2)
-				{
-					return true;
-				}
+        //tavolo_alto = 1.75
+        //tavolo_basso = 0.85
 
-				if (joints[j][2] < 0 || joints[j][2] > 0.7)
+				if (world_coords(2) > TAVOLO_ALTO || world_coords(2) < TAVOLO_BASSO) // 0.85 < z < 1.75
 				{
+          cout << "joint j:" << j << ", z failed for this point: " << world_coords << endl << world_coords << endl;;
 					return true;
 				}
+        cout << "success" << endl;
 			}
 		}
 
@@ -121,8 +156,11 @@ public:
 	void getJointsPositions(Eigen::Matrix<double, 9, 1> &q_des0)
 	{
 		Matrix<double, 8, 6> result = inverse_kin(point, R);
-		int choice = scelta(q_des0.head(6), result);
+    cout << "current_position" << endl << this->current_position << endl << endl;
+		int choice = scelta(current_position, result);
 		q_des0 << result(choice, 0), result(choice, 1), result(choice, 2), result(choice, 3), result(choice, 4), result(choice, 5), _gripper, _gripper, _gripper;
+    cout << "new current_position" << endl << this->current_position << endl << endl;
+    this->current_position = q_des0.head(6);
 	}
 
 	/*!
@@ -142,6 +180,7 @@ public:
 		std::cout << result << endl;
 		return result;
 	}
+
 
 	/*!
 	 * Computa la matrice di rotazione specificati gli angoli di roll, pitch e yaw
@@ -167,26 +206,8 @@ public:
 		return (1 - t) * q0 + t * q1;
 	}
 
-private:
-	/*!
-	 * Rappresentazione della matrice di rotazione valida per ogni joint, secondo i parametri di Denavit-Hartenberg
-	 */
-	Matrix<double, 4, 4> rot(double alpha, double a, double d, double theta)
-	{
-		Matrix<double, 4, 4> T;
 
-		T << cos(theta), -sin(theta), 0, a,
-			sin(theta) * cos(alpha), cos(theta) * cos(alpha), -sin(alpha), -sin(alpha) * d,
-			sin(theta) * sin(alpha), cos(theta) * sin(alpha), cos(alpha), cos(alpha) * d,
-			0, 0, 0, 1;
-
-		return T;
-	}
-
-	/*!
-	 * Computa la matrice di rototranslazione che rappresenta la cinematica diretta del braccio UR5
-	 */
-	Matrix<double, 4, 1> ur5_direct(Matrix<double, 6, 1> joint_values)
+	Matrix<double, 3, 1> ur5_direct(Matrix<double, 6, 1> joint_values)
 	{
 		double th1 = joint_values(0);
 		double th2 = joint_values(1);
@@ -239,8 +260,29 @@ private:
 
 		Matrix<double, 4, 1> unit(0, 0, 0, 1);
 
-		return T * unit;
+		return (T * unit).head(3);
 	}
+
+private:
+	/*!
+	 * Rappresentazione della matrice di rotazione valida per ogni joint, secondo i parametri di Denavit-Hartenberg
+	 */
+	Matrix<double, 4, 4> rot(double alpha, double a, double d, double theta)
+	{
+		Matrix<double, 4, 4> T;
+
+		T << 
+      cos(theta), -sin(theta), 0, a,
+			sin(theta) * cos(alpha), cos(theta) * cos(alpha), -sin(alpha), -sin(alpha) * d,
+			sin(theta) * sin(alpha), cos(theta) * sin(alpha), cos(alpha), cos(alpha) * d,
+			0, 0, 0, 1;
+
+		return T;
+	}
+
+	/*!
+	 * Computa la matrice di rototranslazione che rappresenta la cinematica diretta del braccio UR5
+	 */
 
 	/*!
 	 * Computa le 8 possibili configurazioni dei giunti tali per cui l'end effector del braccio si troverà nel punto specificato, con orientamento dato dalla matrice di rotazione.
