@@ -45,7 +45,7 @@ class InverseKinematic
     point = p;
   }
 
-  Vector3d fromUrd5ToWorld(Vector3d p) {
+  Vector3d fromUr5ToWorld(Vector3d p) {
     Vector4d homogeneous_p;
     homogeneous_p << p(0), p(1), p(2), 1;
     Vector3d Urd5Coords(0.501, 0.352, 1.754);
@@ -56,110 +56,23 @@ class InverseKinematic
       0, 0, -1, Urd5Coords(2),
       0, 0, 0, 1;
     return (r * homogeneous_p).head(3);
-
-    //Vector3d result = p;
-    //result(1) *= -1;
-    //result(2) *= -1;
-    //result = p + Urd5Coords;
-    //return result; 
   }
 
   int scelta(Matrix<double, 6, 1> q0, Matrix<double, 8, 6> joint_configurations)
   {
-    /*if(!check_collisions(q0, joint_configurations.row(7))) {
-      cout << "no collisions, choice = 7" << endl; fflush(stdout);
-      }*/
+    if(!check_collisions(this->previous_choice)) return this->previous_choice;
     int i = 0;
-    if(this->current_position == Matrix<double, 6, 1>::Zero()) return 0;
     for (; i < 8; i++)
     {
       if (!check_collisions(q0, joint_configurations.row(i)))
       {
+        cout << "no collisions, hopefully, choice = " << i << endl;
         this-> previous_choice = i;
         return i;
       }
     }
-    //return previous_choice;
-    return 1;
-  }
-
-  Matrix<double, 6, 1> secondOrderFilter(const Matrix<double, 6, 1> & input, const double rate, const double settling_time, Matrix<double, 6, 1> &f1, Matrix<double, 6, 1> &f2)
-  {
-    double dt = 1 / rate;
-    double gain =  dt / (0.1*settling_time + dt);
-    f1 = (1 - gain) * f1 + gain * input;
-    f2 = (1 - gain) * f2 + gain *f1;
-    return f2;
-  }
-
-
-  bool check_collisions_wit_filter(Matrix<double, 6, 1> q0, Matrix<double, 6, 1> q1)
-  {
-    const double MURO = 0.1;
-    const double BLOCCO = 0.2;
-    const double TAVOLO_ALTO = 1.75; 
-    const double TAVOLO_BASSO = 0.87; 
-    int nsamples = 20;
-    Matrix<double, 6, 1> samples[nsamples];
-
-    Matrix<double, 6, 1> f1 = this->current_position;
-    Matrix<double, 6, 1> f2 = this->current_position;
-
-    for(int i = 0; i < nsamples; i++) {
-      samples[i] = secondOrderFilter(q1, 3 * (double)nsamples, 3, f1, f2);
-    }
-
-    for (int i = 1; i < nsamples; i++)
-    {
-      // for each sample
-      Matrix<double, 4, 4> T10 = rot(0, 0, D[0], samples[i][0]);
-      Matrix<double, 4, 4> T21 = rot(pi / 2, 0, 0, samples[i][1]);
-      Matrix<double, 4, 4> T32 = rot(0, A[1], 0, samples[i][2]);
-      Matrix<double, 4, 4> T43 = rot(0, A[2], D[3], samples[i][3]);
-      Matrix<double, 4, 4> T54 = rot(pi / 2, 0, D[4], samples[i][4]);
-      Matrix<double, 4, 4> T65 = rot(-pi / 2, 0, D[5], samples[i][5]);
-      Vector3d joints[6];
-      Vector4d unit;
-      unit << 0, 0, 0, 1;
-      joints[0] = (T10 * unit).head(3);
-      joints[1] = (T10 * T21 * unit).head(3);
-      joints[2] = (T10 * T21 * T32 * unit).head(3);
-      joints[3] = (T10 * T21 * T32 * T43 * unit).head(3);
-      joints[4] = (T10 * T21 * T32 * T43 * T54 * unit).head(3);
-      joints[5] = (T10 * T21 * T32 * T43 * T54 * T65 * unit).head(3);
-      Matrix<double, 4, 4> T;
-      T = T10 * T21 * T32 * T43 * T54 * T65;
-      Vector3d z_axis;
-      z_axis = T.col(2).head(3);
-
-      //gripper position is the problem
-      double gripper_size = 0.1;
-      Vector3d gripperPosition;
-      gripperPosition = fromUrd5ToWorld(gripper_size * z_axis);
-
-
-      for (int j = 1; j < 6; j++)
-      {
-        if(i == 4) continue;
-        Vector3d world_coords = fromUrd5ToWorld(joints[j]);
-        //cout << "joint j" << j << "in position" << endl << world_coords << endl << endl;
-        if (world_coords(1) < MURO || gripperPosition(1) < MURO) // 0.23
-        {
-          return true;
-        }
-        //tavolo_alto = 1.75
-        //tavolo_basso = 0.85
-        if (world_coords(2) > TAVOLO_ALTO || world_coords(2) < TAVOLO_BASSO || gripperPosition(2) > TAVOLO_ALTO || gripperPosition(2) < TAVOLO_BASSO) // 0.85 < z < 1.75
-        {
-          return true;
-        }
-        if((world_coords(2) < 1.1 && world_coords(1) < BLOCCO) || (gripperPosition(2) < 1.1 && gripperPosition(1) < BLOCCO)) {
-          return true;
-        } 
-      }
-    }
-
-    return false;
+    cout << "no solution found, going with previous choice" << endl;
+    return previous_choice;
   }
 
   bool check_collisions(Matrix<double, 6, 1> q0, Matrix<double, 6, 1> q1)
@@ -169,7 +82,6 @@ class InverseKinematic
     const double TAVOLO_ALTO = 1.75; 
     const double TAVOLO_BASSO = 0.87; 
     int nsamples = 100;
-
 
     int i = 0;
     double ts[nsamples];
@@ -186,7 +98,7 @@ class InverseKinematic
       samples[i] = line(q0, q1, ts[i]);
     }
 
-    for (int i = 1; i < nsamples; i++)
+    for (int i = 0; i < nsamples; i++)
     {
       // for each sample
       Matrix<double, 4, 4> T10 = rot(0, 0, D[0], samples[i][0]);
@@ -204,40 +116,59 @@ class InverseKinematic
       joints[3] = (T10 * T21 * T32 * T43 * unit).head(3);
       joints[4] = (T10 * T21 * T32 * T43 * T54 * unit).head(3);
       joints[5] = (T10 * T21 * T32 * T43 * T54 * T65 * unit).head(3);
+
+      /*if(!(nsamples % 20) ){
+        cout << "printing joint states" << endl;
+        print_joints(joints);
+      }*/
+      
       Matrix<double, 4, 4> T;
       T = T10 * T21 * T32 * T43 * T54 * T65;
       Vector3d z_axis;
       z_axis = T.col(2).head(3);
+      double gripper_size = 0.12;
 
       //gripper position is the problem
-      double gripper_size = 0.1;
       Vector3d gripperPosition;
-      gripperPosition = fromUrd5ToWorld(gripper_size * z_axis);
+      gripperPosition = fromUr5ToWorld(T.col(3).head(3) + z_axis*gripper_size);
+      Vector3d gripper_positions[6];
 
-
-      for (int j = 1; j < 6; j++)
+      if(gripperPosition(2) < 1 && gripperPosition(1) < BLOCCO) { 
+        cout << "gripper blocco collision, position:" << endl << gripperPosition << endl;
+        return true;
+      }
+      if( gripperPosition(2) > TAVOLO_ALTO || gripperPosition(2) < TAVOLO_BASSO) {
+        cout << "gripper z collision, position: " << endl << gripperPosition << endl;
+        return true;
+      }
+      if(gripperPosition(1) < MURO) {
+        cout << "gripper y collision, position: " << endl << gripperPosition << endl;
+      }
+      for (int j = 0; j < 6; j++)
       {
-        Vector3d world_coords = fromUrd5ToWorld(joints[j]);
-
+        if(i == 4) continue;
+        Vector3d world_coords = fromUr5ToWorld(joints[j]);
         //cout << "joint j" << j << "in position" << endl << world_coords << endl << endl;
-        if (world_coords(1) < MURO || gripperPosition(1) < MURO) // 0.23
+        if (world_coords(1) < MURO) // 0.23
         {
+          cout << "joint j: " << j << ", y failed for this point: " << world_coords << endl;
           return true;
-        }
-
+        } 
         //tavolo_alto = 1.75
         //tavolo_basso = 0.85
-        if (world_coords(2) > TAVOLO_ALTO || world_coords(2) < TAVOLO_BASSO || gripperPosition(2) > TAVOLO_ALTO || gripperPosition(2) < TAVOLO_BASSO) // 0.85 < z < 1.75
+        if (world_coords(2) > TAVOLO_ALTO || world_coords(2) < TAVOLO_BASSO )// 0.85 < z < 1.75
         {
+          cout << "joint j:" << j << ", z failed for this point: " << endl << world_coords << endl;
+          cout << "conditions: " << world_coords(2) << ">" << TAVOLO_ALTO << " || " << world_coords(2) << "<" << TAVOLO_BASSO << endl;
           return true;
-        }
-
-        if((world_coords(2) < 1.1 && world_coords(1) < BLOCCO) || (gripperPosition(2) < 1.1 && gripperPosition(1) < BLOCCO)) {
+        } 
+        if(world_coords(2) < 1 && world_coords(1) < BLOCCO) {
+          cout << "joint j:" << j << ", y failed for this point: " << world_coords << endl;
+          cout << "z value: " << world_coords(2) << " and y value: " << world_coords(1) << endl;
           return true;
         } 
       }
     }
-
     return false;
   }
 
@@ -257,6 +188,7 @@ class InverseKinematic
    */
   Vector3d fromWorldToUrd5(Vector3d p)
   {
+    std::cout << "p: " << p << std::endl;
     Vector3d Urd5Coords(0.501, 0.352, 1.754);
     Vector3d result = p - Urd5Coords;
     result(0) = result(0);
