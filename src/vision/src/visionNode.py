@@ -6,7 +6,7 @@ from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 from vision.msg import custMsg
 from cv2 import imshow, waitKey, resize
-from os import system
+from os import system,getenv
 
 blocks = [
     ("X1-Y1-Z2_0", 0),
@@ -101,7 +101,7 @@ blocks = [
 
 class VisionNode():
     def __init__(self):
-        self.model = YOLO("weights.pt")
+        self.model = YOLO(getenv("HOME") + "/robotica2023AN_test/src/vision/src/weights.pt")
         self.TAVOLO_HEIGHT = 0.87
         self.width = 1920
         self.height = 1080
@@ -148,7 +148,7 @@ class VisionNode():
         for b in boxes:
             cx = b[0]+(b[2]-b[0])/2
             cy = b[1]+(b[3]-b[1])/2
-            if (cx >= 678 and cx <= 1538 and cy >= 561 and cy <= 903):
+            if (cx >= 678 and cx <= 1538 and cy >= 500 and cy <= 903):
                 newBoxes.append(b)
             else:
                 newBoxes.append(None)

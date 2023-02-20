@@ -84,24 +84,6 @@ JointStateVector secondOrderFilter(const JointStateVector& input,
   return filter_2;
 }
 
-void homing_procedure() {
-  Vector3d dest(0.2, -0.4, 0.58);
-  ros::Rate loop_rate(loop_frequency);
-  Vector3d m(0, 0, pi);
-  JointStateVector q_des;
-  JointStateVector q_des_filtered;
-  invKin.setDestinationPoint(dest,m,0);
-  invKin.getJointsPositions(q_des);
-  while (loop_time < TIME_FOR_MOVING) {
-    q_des_filtered = secondOrderFilter(q_des, loop_frequency, TIME_FOR_MOVING);
-    send_des_jstate(q_des_filtered);
-    loop_time += (double)1 / loop_frequency;
-    ros::spinOnce();
-    loop_rate.sleep();
-  }
-  loop_time = 0;
-}
-
 int main(int argc, char** argv) {
   ros::init(argc, argv, "custom_joint_publisher");
   ros::NodeHandle node;
@@ -127,7 +109,6 @@ int main(int argc, char** argv) {
   q_des_init << 0, 0, 0, 0, 0, 0, 0, 0, 0;
   initFilter(q_des_init);
 
-  homing_procedure();
   std::cout << "Reached home" << std::endl;
 
   while (ros::ok()) {

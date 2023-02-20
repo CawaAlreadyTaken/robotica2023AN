@@ -1,18 +1,35 @@
 #include <custom_joint_publisher.h>
 #include <math.h>
 #include <vision/custMsg.h>
+#include <vector>
 
 #include "inverseKin.cpp"
 
-int counts[11]; //how many classes already present in pile
-//to be updated when robot has done moving
-
 const double pi = 2 * acos(0.0);
-Vector3d finalDestination;
 ros::Subscriber sub;
+
+int counter = 0;
 
 InverseKinematic invKin;
 bool is_moving;
+
+typedef struct Blocks{
+  int index;
+  Vector3d position;
+} Blocks;
+
+Blocks blocks[8];
+
+vector <Blocks> blocksToMove = {
+  {10, Vector3d(0.1, 0.35, 0.87)},
+  {10, Vector3d(0.1, 0.5, 0.87)},
+  {10, Vector3d(0.1, 0.35, 0.925)},
+  {10, Vector3d(0.1, 0.5, 0.925)},
+  {10, Vector3d(0.1, 0.35, 0.98)},
+  {10, Vector3d(0.1, 0.5, 0.98)},
+  {8, Vector3d(0.1, 0.425, 1.035)}
+};
+
 
 void send_des_jstate(const JointStateVector& joint_pos) {
   for (int i = 0; i < joint_pos.size(); i++) {
@@ -41,21 +58,48 @@ void moveRobot(Vector3d dest, double height, double g, double time, double rotat
   std::cout << "Robot moved" << std::endl;
 }
 
+
 void getMoveAndDropObject(Vector3d initialPosition, Vector3d finalPosition, int index/*index della classe che spostiamo*/) {
-  int blocks = counts[index%11];
-  double scale_factor = 0.056;
   double rotation = -(2*pi*(double)((index/11)*45)/360) + pi;
-  cout<<"rotation"<<rotation<<endl;
+  cout << "initialPosition: " << endl << initialPosition << endl << "finalPosition: " << endl << finalPosition << endl << "rotation: " << endl << rotation << endl;
   moveRobot(initialPosition, UP_HEIGHT, OPEN_GRIP, TIME_FOR_MOVING,rotation);
   moveRobot(initialPosition, DOWN_HEIGHT, OPEN_GRIP, TIME_FOR_LOWERING_RISING,rotation);
   moveRobot(initialPosition, DOWN_HEIGHT, CLOSE_GRIP, TIME_FOR_CLOSING_OPENING,rotation);
   moveRobot(initialPosition, UP_HEIGHT, CLOSE_GRIP, TIME_FOR_LOWERING_RISING,rotation);
-  moveRobot(finalPosition, UP_HEIGHT - blocks * scale_factor, CLOSE_GRIP, TIME_FOR_MOVING);
-  moveRobot(finalPosition, DOWN_HEIGHT - blocks * scale_factor, CLOSE_GRIP, TIME_FOR_LOWERING_RISING);
-  moveRobot(finalPosition, DOWN_HEIGHT - blocks * scale_factor, OPEN_GRIP, TIME_FOR_CLOSING_OPENING);
-  moveRobot(finalPosition, UP_HEIGHT - blocks * scale_factor, OPEN_GRIP, TIME_FOR_LOWERING_RISING);
+  moveRobot(finalPosition, UP_HEIGHT, CLOSE_GRIP, TIME_FOR_MOVING);
+  moveRobot(finalPosition, DOWN_HEIGHT, CLOSE_GRIP, TIME_FOR_LOWERING_RISING);
+  moveRobot(finalPosition, DOWN_HEIGHT, OPEN_GRIP, TIME_FOR_CLOSING_OPENING);
+  moveRobot(finalPosition, UP_HEIGHT, OPEN_GRIP, TIME_FOR_LOWERING_RISING);
+  blocks[counter].index = index;
+  blocks[counter].position = finalPosition;
+}
 
-  counts[index%11]++;
+void buildBlock(Vector3d initialPosition, Vector3d finalPosition, int index){
+  double rotation = -(2*pi*(double)((index/11)*45)/360) + pi;
+  cout << "initialPosition: " << endl << initialPosition << endl << "finalPosition: " << endl << finalPosition << endl << "rotation: " << endl << rotation << endl;
+  moveRobot(initialPosition, UP_HEIGHT, OPEN_GRIP, TIME_FOR_MOVING,rotation);
+  moveRobot(initialPosition, DOWN_HEIGHT, OPEN_GRIP, TIME_FOR_LOWERING_RISING,rotation);
+  moveRobot(initialPosition, DOWN_HEIGHT, CLOSE_GRIP, TIME_FOR_CLOSING_OPENING,rotation);
+  moveRobot(initialPosition, UP_HEIGHT, CLOSE_GRIP, TIME_FOR_LOWERING_RISING,rotation);
+  moveRobot(finalPosition, UP_HEIGHT, CLOSE_GRIP, TIME_FOR_MOVING);
+  moveRobot(finalPosition, DOWN_HEIGHT, CLOSE_GRIP, TIME_FOR_LOWERING_RISING);
+  moveRobot(finalPosition, DOWN_HEIGHT, OPEN_GRIP, TIME_FOR_CLOSING_OPENING);
+  moveRobot(finalPosition, UP_HEIGHT, OPEN_GRIP, TIME_FOR_LOWERING_RISING);
+}
+
+void build(){
+  cout<<"BUILDING STARTED"<<endl;
+  for(int j = 0; j < 7; j++){
+    for(int i = 0; i < 7; i++){
+      if(blocks[i].index%11 == blocksToMove[j].index ){
+        buildBlock(invKin.fromWorldToUrd5(blocks[i].position), invKin.fromWorldToUrd5(blocksToMove[j].position), blocks[i].index);
+        blocks[i].index = -1;
+        break;
+      }
+    }
+  }
+  cout << "BUILDING FINISHED" << endl;
+  exit(0);
 }
 
 void visionCallback(const vision::custMsg::ConstPtr& msg) {
@@ -70,7 +114,12 @@ void visionCallback(const vision::custMsg::ConstPtr& msg) {
   Vector3d WorldCoords = Vector3d(msg->x, msg->y, msg->z);
   Vector3d Ur5Coords = invKin.fromWorldToUrd5(WorldCoords);
 
-  getMoveAndDropObject(Ur5Coords, invKin.fromWorldToUrd5(Vector3d(FINAL_POSITIONS[msg->index%11][0], FINAL_POSITIONS[msg->index%11][1], DOWN_HEIGHT)), msg->index);
+  getMoveAndDropObject(Ur5Coords, invKin.fromWorldToUrd5(Vector3d(FINAL_POSITIONS_ASS4[counter][0], FINAL_POSITIONS_ASS4[counter][1], DOWN_HEIGHT)), msg->index);
+  counter++;
+  cout<<"counter: "<<counter<<endl;
+  if(counter == 7) {
+    build();
+  };
   is_moving = false;
 }
 
@@ -90,15 +139,12 @@ JointStateVector secondOrderFilter(const JointStateVector& input,
 }
 
 int main(int argc, char** argv) {
-  for(int i = 0; i < 11; i++) {
-    counts[i] = 0;
-  }
+  
   ros::init(argc, argv, "custom_joint_publisher");
   ros::NodeHandle node;
   is_moving = false;
   node.getParam("/real_robot", real_robot);
   invKin = InverseKinematic();
-  finalDestination << 0.35, -0.35, DOWN_HEIGHT;
 
   pub_des_jstate = node.advertise<std_msgs::Float64MultiArray>(
       "/ur5/joint_group_pos_controller/command", 1);

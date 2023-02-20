@@ -47,6 +47,16 @@ Eigen::Vector3d FINAL_POSITIONS[] = {
     Eigen::Vector3d(0.95, 0.4, 1),
 };
 
+Eigen::Vector3d FINAL_POSITIONS_ASS4[] = {
+    Eigen::Vector3d(0.65, 0.55, 1),
+    Eigen::Vector3d(0.8, 0.7, 1),
+    Eigen::Vector3d(0.8, 0.55, 1),
+    Eigen::Vector3d(0.8, 0.4, 1),
+    Eigen::Vector3d(0.95, 0.7, 1),
+    Eigen::Vector3d(0.95, 0.55, 1),
+    Eigen::Vector3d(0.95, 0.4, 1),
+};
+
 // Publishers
 //std::shared_ptr<realtime_tools::RealtimePublisher<sensor_msgs::JointState> > pub_des_jstate_sim_rt;
 ros::Publisher pub_des_jstate;

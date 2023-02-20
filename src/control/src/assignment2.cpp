@@ -100,7 +100,7 @@ int main(int argc, char** argv) {
   jointState_msg_robot.data.resize(9);
 
   JointStateVector q_des_init;
-  q_des_init << -0.32, -0.78, -2.56, -1.63, -1.57, 3.49, 0,0, 0;
+  q_des_init << 0., 0., 0., 0., 0., 0., 0., 0., 0.;
   initFilter(q_des_init);
 
   while (ros::ok()) {
