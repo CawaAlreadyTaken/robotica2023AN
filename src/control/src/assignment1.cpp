@@ -3,6 +3,7 @@
 #include <vision/custMsg.h>
 
 #include "inverseKin.cpp"
+#include "differentialKin.cpp"
 
 const double pi = 2 * acos(0.0);
 Vector3d finalDestination;
@@ -20,7 +21,6 @@ void send_des_jstate(const JointStateVector& joint_pos) {
 }
 
 void moveRobot(Vector3d dest, double height, double g, double time) {
-  int choice = 5;
   ros::Rate loop_rate(loop_frequency);
   dest(2) = height;
   Vector3d m(0, 0, pi);
@@ -37,6 +37,9 @@ void moveRobot(Vector3d dest, double height, double g, double time) {
   }
   loop_time = 0;
   std::cout << "Robot moved" << std::endl;
+  std::cout << "final position in ur5 coords: " << std::endl << invKin.ur5_direct(q_des_filtered.head(6)) << std::endl <<  std::endl;
+  std::cout << "in world coords: " << endl << invKin.fromUr5ToWorld(invKin.ur5_direct(q_des_filtered.head(6))) << std::endl << std::endl;
+
 }
 
 void getMoveAndDropObject(Vector3d initialPosition, Vector3d finalPosition) {
@@ -99,6 +102,10 @@ void homing_procedure() {
     ros::spinOnce();
     loop_rate.sleep();
   }
+
+  std::cout << "final position in ur5 coords: " << std::endl << invKin.ur5_direct(q_des_filtered.head(6)) << std::endl <<  std::endl;
+  std::cout << "in world coords: " << endl << invKin.fromUr5ToWorld(invKin.ur5_direct(q_des_filtered.head(6))) << std::endl << std::endl;
+  
   loop_time = 0;
 }
 

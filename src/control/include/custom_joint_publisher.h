@@ -23,8 +23,8 @@ JointStateVector tau_ffwd = JointStateVector::Zero();
 JointStateVector filter_1 = JointStateVector::Zero();
 JointStateVector filter_2 = JointStateVector::Zero();
 
-double  loop_time = 0.;
-double  loop_frequency = 1000.;
+double loop_time = 0.;
+double loop_frequency = 10.;
 double TIME_FOR_MOVING = 3.;
 double TIME_FOR_LOWERING_RISING = 3.;
 double TIME_FOR_CLOSING_OPENING = 1.;
@@ -56,4 +56,3 @@ std_msgs::Float64MultiArray jointState_msg_robot;
 bool real_robot = false;
 
 #endif
-

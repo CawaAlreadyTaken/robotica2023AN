@@ -22,10 +22,10 @@ void send_des_jstate(const JointStateVector& joint_pos) {
   pub_des_jstate.publish(jointState_msg_robot);
 }
 
-void moveRobot(Vector3d dest, double height, double g, double time) {
+void moveRobot(Vector3d dest, double height, double g, double time, double angle) {
   ros::Rate loop_rate(loop_frequency);
   dest(2) = height;
-  Vector3d m(0, 0, pi);
+  Vector3d m(angle, 0, pi);
   JointStateVector q_des;
   JointStateVector q_des_filtered;
   invKin.setDestinationPoint(dest,m,g);
@@ -42,16 +42,17 @@ void moveRobot(Vector3d dest, double height, double g, double time) {
 }
 
 void getMoveAndDropObject(Vector3d initialPosition, Vector3d finalPosition, int index/*index della classe che spostiamo*/) {
-  int blocks = counts[index];
+  int blocks = counts[index%11];
   double scale_factor = 0.065;
-  moveRobot(initialPosition, UP_HEIGHT, OPEN_GRIP, TIME_FOR_MOVING);
-  moveRobot(initialPosition, DOWN_HEIGHT, OPEN_GRIP, TIME_FOR_LOWERING_RISING);
-  moveRobot(initialPosition, DOWN_HEIGHT, CLOSE_GRIP, TIME_FOR_CLOSING_OPENING);
-  moveRobot(initialPosition, UP_HEIGHT, CLOSE_GRIP, TIME_FOR_LOWERING_RISING);
-  moveRobot(finalPosition, UP_HEIGHT - blocks * scale_factor, CLOSE_GRIP, TIME_FOR_MOVING);
-  moveRobot(finalPosition, DOWN_HEIGHT - blocks * scale_factor, CLOSE_GRIP, TIME_FOR_LOWERING_RISING);
-  moveRobot(finalPosition, DOWN_HEIGHT - blocks * scale_factor, OPEN_GRIP, TIME_FOR_CLOSING_OPENING);
-  moveRobot(finalPosition, UP_HEIGHT - blocks * scale_factor, OPEN_GRIP, TIME_FOR_LOWERING_RISING);
+  double approach_angle = (index/11) * pi/4;
+  moveRobot(initialPosition, UP_HEIGHT, OPEN_GRIP, TIME_FOR_MOVING, approach_angle);
+  moveRobot(initialPosition, DOWN_HEIGHT, OPEN_GRIP, TIME_FOR_LOWERING_RISING, approach_angle);
+  moveRobot(initialPosition, DOWN_HEIGHT, CLOSE_GRIP, TIME_FOR_CLOSING_OPENING, approach_angle);
+  moveRobot(initialPosition, UP_HEIGHT, CLOSE_GRIP, TIME_FOR_LOWERING_RISING, approach_angle);
+  moveRobot(finalPosition, UP_HEIGHT - blocks * scale_factor, CLOSE_GRIP, TIME_FOR_MOVING, 0);
+  moveRobot(finalPosition, DOWN_HEIGHT - blocks * scale_factor, CLOSE_GRIP, TIME_FOR_LOWERING_RISING, 0);
+  moveRobot(finalPosition, DOWN_HEIGHT - blocks * scale_factor, OPEN_GRIP, TIME_FOR_CLOSING_OPENING, 0);
+  moveRobot(finalPosition, UP_HEIGHT - blocks * scale_factor, OPEN_GRIP, TIME_FOR_LOWERING_RISING, 0);
 
   counts[index]++;
 }
@@ -68,7 +69,7 @@ void visionCallback(const vision::custMsg::ConstPtr& msg) {
   Vector3d WorldCoords = Vector3d(msg->x, msg->y, msg->z);
   Vector3d Ur5Coords = invKin.fromWorldToUrd5(WorldCoords);
 
-  getMoveAndDropObject(Ur5Coords, finalDestination, ((int)msg->index)%11);
+  getMoveAndDropObject(Ur5Coords, finalDestination, msg->index);
   is_moving = false;
 }
 
