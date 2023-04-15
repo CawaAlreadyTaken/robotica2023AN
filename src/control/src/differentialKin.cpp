@@ -61,7 +61,7 @@ public:
     return this->ee_coords;
   }
 
-  void updateRobotsPosition(Matrix<double, 6, 1> joints) {
+  void setRobotsPosition(Matrix<double, 6, 1> joints) {
     // update robots ee position to robots frame
     // update rotation matrix to robots frame
     // update joint positions
@@ -104,8 +104,9 @@ public:
 
     double min_eigenvalue;
     min_eigenvalue = eigenvalues.minCoeff();
-    if (abs(min_eigenvalue) < 0.1)
+    if (abs(min_eigenvalue) < 0.2)
     {
+      cout << "d" << endl;
       jac = dampedJacobian(jac, 0.1);
     }
 

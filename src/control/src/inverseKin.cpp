@@ -102,8 +102,8 @@ class InverseKinematic
   {
     const double MURO = 0.1;
     const double BLOCCO = 0.2;
-    const double TAVOLO_ALTO = 1.75; 
-    const double TAVOLO_BASSO = 0.87; 
+    const double TAVOLO_ALTO = 1.75;
+    const double TAVOLO_BASSO = 0.87;
     int nsamples = 100;
 
     int i = 0;
@@ -144,7 +144,7 @@ class InverseKinematic
         cout << "printing joint states" << endl;
         print_joints(joints);
       }*/
-      
+
       Matrix<double, 4, 4> T;
       T = T10 * T21 * T32 * T43 * T54 * T65;
       Vector3d z_axis;
@@ -156,7 +156,7 @@ class InverseKinematic
       gripperPosition = fromUr5ToWorld(T.col(3).head(3) + z_axis*gripper_size);
       Vector3d gripper_positions[6];
 
-      if(gripperPosition(2) < 1 && gripperPosition(1) < BLOCCO) { 
+      if(gripperPosition(2) < 1 && gripperPosition(1) < BLOCCO) {
         cout << "gripper blocco collision, position:" << endl << gripperPosition << endl;
         return true;
       }
@@ -176,7 +176,7 @@ class InverseKinematic
         {
           cout << "joint j: " << j << ", y failed for this point: " << world_coords << endl;
           return true;
-        } 
+        }
         //tavolo_alto = 1.75
         //tavolo_basso = 0.85
         if (world_coords(2) > TAVOLO_ALTO || world_coords(2) < TAVOLO_BASSO )// 0.85 < z < 1.75
@@ -184,12 +184,12 @@ class InverseKinematic
           cout << "joint j:" << j << ", z failed for this point: " << endl << world_coords << endl;
           cout << "conditions: " << world_coords(2) << ">" << TAVOLO_ALTO << " || " << world_coords(2) << "<" << TAVOLO_BASSO << endl;
           return true;
-        } 
+        }
         if(world_coords(2) < 1 && world_coords(1) < BLOCCO) {
           cout << "joint j:" << j << ", y failed for this point: " << world_coords << endl;
           cout << "z value: " << world_coords(2) << " and y value: " << world_coords(1) << endl;
           return true;
-        } 
+        }
       }
     }
     return false;
@@ -224,7 +224,7 @@ class InverseKinematic
     Vector3d Ur5Coords(0.501, 0.352, 1.754);
     Vector4d homogeneous_p; homogeneous_p << p, 1;
     Matrix<double, 4, 4> r;
-    r << 
+    r <<
     1, 0, 0, -Ur5Coords(0),
     0, -1, 0, Ur5Coords(1),
     0, 0, -1, Ur5Coords(2),
@@ -319,7 +319,7 @@ class InverseKinematic
   {
     Matrix<double, 4, 4> T;
 
-    T << 
+    T <<
       cos(theta), -sin(theta), 0, a,
       sin(theta) * cos(alpha), cos(theta) * cos(alpha), -sin(alpha), -sin(alpha) * d,
       sin(theta) * sin(alpha), cos(theta) * sin(alpha), cos(alpha), cos(alpha) * d,

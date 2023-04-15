@@ -142,18 +142,18 @@ class VisionNode():
             (sin(0.523599)-pc2_pc0*cos(0.523599))
         b = 0.59+pc1_pc0*0.5977499099999999+pc1_pc0*cos(0.523599)*a
         return [a, b]
-    
+
     def filterBoxes(self, boxes):
         newBoxes = []
         for b in boxes:
             cx = b[0]+(b[2]-b[0])/2
             cy = b[1]+(b[3]-b[1])/2
-            if (cx >= 678 and cx <= 1538 and cy >= 561 and cy <= 903):
+            if (cx >= 678 and cx <= 1538 and cy >= 500 and cy <= 903):
                 newBoxes.append(b)
             else:
                 newBoxes.append(None)
         return newBoxes
-    
+
     def printRes(self,results):
         res_arr = []
         for ris in results[0].numpy():
