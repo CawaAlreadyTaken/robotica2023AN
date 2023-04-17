@@ -1,67 +1,47 @@
 <?xml version="1.0"?>
-<sdf version="1.4">
-
-	<physics type="ode">
-
-		<ode>
-
-			<constraints>
-				<contact_max_correcting_vel>0.1</contact_max_correcting_vel>
-				<contact_surface_layer>0.0001</contact_surface_layer>
-			</constraints>
-		</ode>
-		<max_contacts>10</max_contacts>
-	</physics>
-
-	<model name="X2-Y2-Z2">
-		<link name="link">
+<sdf version="1.6">
+	<model name="X1-Y1-Z2">
+		<pose>0 0 0 0 0 0</pose>
+		<link name="lego_link">
 			<inertial>
-				<mass>4.0</mass>
-				<inertia> <!-- inertias are tricky to compute -->
-					<!-- http://gazebosim.org/tutorials?tut=inertia&cat=build_robot -->
-					<ixx>0.083</ixx>       <!-- for a box: ixx = 0.083 * mass * (y*y + z*z) -->
-					<ixy>0.0</ixy>         <!-- for a box: ixy = 0 -->
-					<ixz>0.0</ixz>         <!-- for a box: ixz = 0 -->
-					<iyy>0.083</iyy>       <!-- for a box: iyy = 0.083 * mass * (x*x + z*z) -->
-					<iyz>0.0</iyz>         <!-- for a box: iyz = 0 -->
-					<izz>0.083</izz>       <!-- for a box: izz = 0.083 * mass * (x*x + y*y) -->
+			<pose>0 0 0.029 0 0 0</pose>
+				<mass>1</mass>
+				<inertia>
+					<ixx>0.001</ixx>
+					<ixy>0</ixy>
+					<ixz>0</ixz>
+					<iyy>0.001</iyy>
+					<iyz>0</iyz>
+					<izz>0.001</izz>
 				</inertia>
 			</inertial>
-			<collision name="collision">
-
+			<collision name="lego_collision">
 				<geometry>
 					<mesh>
 						<uri>model://X2-Y2-Z2/mesh/X2-Y2-Z2.stl</uri>
-						<scale>1 1 1</scale>
 					</mesh>
-
-
 				</geometry>
+				<surface>
+					<friction>
+						<ode>
+							<mu>0.5</mu>
+						</ode>
+					</friction>
+					<bounce>
+						<restitution_coefficient>0.8</restitution_coefficient>
+					</bounce>
+				</surface>
 			</collision>
-
-			<visual name="visual">
+			<visual name="lego_visual">
 				<material>
 					<ambient>0 0.1 1 1</ambient>
 				</material>
 				<geometry>
 					<mesh>
 						<uri>model://X2-Y2-Z2/mesh/X2-Y2-Z2.stl</uri>
-						<scale>1 1 1</scale>
 					</mesh>
-
-
 				</geometry>
 			</visual>
-			<mu1>10</mu1>
-			<mu2>10</mu2>
-
-			<kp>100000.0</kp>
-			<kd>10.0</kd>
-			<fdir1>0 0 1</fdir1>
-			<minDepth>0.001</minDepth>
-			<maxVel>0.0</maxVel>
-			<maxContacts>2</maxContacts>
-			<material>Gazebo/RedBright</material>
 		</link>
 	</model>
 </sdf>

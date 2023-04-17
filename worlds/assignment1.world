@@ -21,11 +21,11 @@
       <pose>0.0 0.0 0.0 0 0 0</pose>
     </include>
     <include>
-      <name>X1-Y1-Z2</name>
-      <uri>model://X1-Y1-Z2</uri>
+      <name>X1-Y2-Z2-CHAMFER</name>
+      <uri>model://X1-Y2-Z2-CHAMFER</uri>
       <pose> 0.17 0.7 0.90   0 0 0</pose> 
     </include>
-    <!-- <include>
+    <include>
       <name>X1-Y1-Z2-Placeholder</name>
       <uri>model://Placeholders/X1-Y1-Z2</uri>
       <pose> 0.65 0.55 1   0 0 0</pose> 
@@ -55,7 +55,7 @@
       <pose> 0.8 0.55 1   0 0 0</pose> 
       <static>true</static>
     </include>
-    <include>
+    <include> 
       <name>X1-Y3-Z2-Placeholder</name>
       <uri>model://Placeholders/X1-Y3-Z2</uri>
       <pose> 0.8 0.4 1   0 0 0</pose> 
@@ -90,7 +90,7 @@
       <uri>model://Placeholders/X2-Y2-Z2-FILLET</uri>
       <pose> 0.95 0.25 1   0 0 0</pose> 
       <static>true</static>
-    </include> -->
+    </include>
 
 
      <gui>

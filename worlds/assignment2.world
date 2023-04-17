@@ -23,32 +23,134 @@
     <include>
       <name>X1-Y1-Z2</name>
       <uri>model://X1-Y1-Z2</uri>
-      <pose> 0.13 0.54 0.90   0 0 0</pose>
+      <pose> 0.2 0.55 0.87   0 0 1.57079</pose> 
+      
+    </include>
+    <include>
+      <name>X1-Y2-Z1</name>
+      <uri>model://X1-Y2-Z1</uri>
+      <pose> 0.2 0.4 0.87   0 0 2.356194</pose> 
+      
+    </include>
+    <include>
+      <name>X1-Y2-Z2</name>
+      <uri>model://X1-Y2-Z2</uri>
+      <pose> 0.05 0.4 0.87   0 0 1.57079</pose> 
+      
     </include>
     <include>
       <name>X1-Y2-Z2-CHAMFER</name>
       <uri>model://X1-Y2-Z2-CHAMFER</uri>
-      <pose> 0.23 0.63 0.90   0 0 0</pose>
+      <pose> 0.35 0.7 0.87   0 0 0</pose> 
+      
+    </include>
+    <include>
+      <name>X1-Y2-Z2-TWINFILLET</name>
+      <uri>model://X1-Y2-Z2-TWINFILLET</uri>
+      <pose> 0.35 0.55 0.87   0 0 2.356194</pose> 
+      
+    </include>
+    <include> 
+      <name>X1-Y3-Z2</name>
+      <uri>model://X1-Y3-Z2</uri>
+      <pose> 0.35 0.4 0.87   0 0 0</pose> 
+      
+    </include>
+    <include>
+      <name>X1-Y3-Z2-FILLET</name>
+      <uri>model://X1-Y3-Z2-FILLET</uri>
+      <pose> 0.2 0.7 0.87   0 0 2.356194</pose> 
+      
     </include>
     <include>
       <name>X1-Y4-Z1</name>
       <uri>model://X1-Y4-Z1</uri>
-      <pose> 0.34 0.40 0.90   0 0 0</pose>
-    </include>
-    <include>
-      <name>X2-Y2-Z2-FILLET</name>
-      <uri>model://X2-Y2-Z2-FILLET</uri>
-      <pose> 0.55 0.60 0.90   0 0 0</pose>
-    </include>
-    <include>
-      <name>X1-Y3-Z2</name>
-      <uri>model://X1-Y3-Z2</uri>
-      <pose> 0.68 0.65 0.90   0 0 0</pose>
+      <pose> 0.5 0.7 0.87   0 0 2.356194</pose> 
+      
     </include>
     <include>
       <name>X1-Y4-Z2</name>
       <uri>model://X1-Y4-Z2</uri>
-      <pose> 0.80 0.50 0.90   0 0 0</pose>
+      <pose> 0.5 0.55 0.87   0 0 1.57079</pose> 
+      
+    </include>
+    <include>
+      <name>X2-Y2-Z2</name>
+      <uri>model://X2-Y2-Z2</uri>
+      <pose> 0.05 0.55 0.87   0 0 2.356194</pose> 
+      
+    </include>
+    <include>
+      <name>X2-Y2-Z2-FILLET</name>
+      <uri>model://X2-Y2-Z2-FILLET</uri>
+      <pose> 0.05 0.7 0.87   0 0 2.356194</pose> 
+      
+    </include>
+    <include>
+      <name>X1-Y1-Z2-Placeholder</name>
+      <uri>model://Placeholders/X1-Y1-Z2</uri>
+      <pose> 0.65 0.55 1   0 0 0</pose> 
+      <static>true</static>
+    </include>
+    <include>
+      <name>X1-Y2-Z1-Placeholder</name>
+      <uri>model://Placeholders/X1-Y2-Z1</uri>
+      <pose> 0.65 0.4 1   0 0 0</pose> 
+      <static>true</static>
+    </include>
+    <include>
+      <name>X1-Y2-Z2-Placeholder</name>
+      <uri>model://Placeholders/X1-Y2-Z2</uri>
+      <pose> 0.65 0.25 1   0 0 0</pose> 
+      <static>true</static>
+    </include>
+    <include>
+      <name>X1-Y2-Z2-CHAMFER-Placeholder</name>
+      <uri>model://Placeholders/X1-Y2-Z2-CHAMFER</uri>
+      <pose> 0.8 0.7 1   0 0 0</pose> 
+      <static>true</static>
+    </include>
+    <include>
+      <name>X1-Y2-Z2-TWINFILLET-Placeholder</name>
+      <uri>model://Placeholders/X1-Y2-Z2-TWINFILLET</uri>
+      <pose> 0.8 0.55 1   0 0 0</pose> 
+      <static>true</static>
+    </include>
+    <include> 
+      <name>X1-Y3-Z2-Placeholder</name>
+      <uri>model://Placeholders/X1-Y3-Z2</uri>
+      <pose> 0.8 0.4 1   0 0 0</pose> 
+      <static>true</static>
+    </include>
+    <include>
+      <name>X1-Y3-Z2-FILLET-Placeholder</name>
+      <uri>model://Placeholders/X1-Y3-Z2-FILLET</uri>
+      <pose> 0.8 0.25 1   0 0 0</pose> 
+      <static>true</static>
+    </include>
+    <include>
+      <name>X1-Y4-Z1-Placeholder</name>
+      <uri>model://Placeholders/X1-Y4-Z1</uri>
+      <pose> 0.95 0.7 1   0 0 0</pose> 
+      <static>true</static>
+    </include>
+    <include>
+      <name>X1-Y4-Z2-Placeholder</name>
+      <uri>model://Placeholders/X1-Y4-Z2</uri>
+      <pose> 0.95 0.55 1   0 0 0</pose> 
+      <static>true</static>
+    </include>
+    <include>
+      <name>X2-Y2-Z2-Placeholder</name>
+      <uri>model://Placeholders/X2-Y2-Z2</uri>
+      <pose> 0.95 0.4 1   0 0 0</pose> 
+      <static>true</static>
+    </include>
+    <include>
+      <name>X2-Y2-Z2-FILLET-Placeholder</name>
+      <uri>model://Placeholders/X2-Y2-Z2-FILLET</uri>
+      <pose> 0.95 0.25 1   0 0 0</pose> 
+      <static>true</static>
     </include>
 
 
