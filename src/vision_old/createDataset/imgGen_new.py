@@ -4,9 +4,12 @@ from tf.transformations import quaternion_from_euler
 from geometry_msgs.msg import Pose, Quaternion, Point
 import rospy
 import time
+import random
 from typing import Iterable
 from gazebo_msgs.srv import DeleteModel
-from gazebo_msgs.msg import ModelStates
+from gazebo_msgs.msg import ModelState, ModelStates
+from gazebo_msgs.srv import SetModelState
+from gazebo_msgs.srv import GetModelState
 from random import randint, shuffle
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
@@ -18,98 +21,21 @@ from math import cos, sin, pi
 import numpy as np
 
 blocks = [
-    ("X1-Y1-Z2_0", 0),
-    ("X1-Y2-Z1_0", 1),
-    ("X1-Y2-Z2-CHAMFER_0", 2),
-    ("X1-Y2-Z2_0", 3),
-    ("X1-Y2-Z2-TWINFILLET_0", 4),
-    ("X1-Y3-Z2-FILLET_0", 5),
-    ("X1-Y3-Z2_0", 6),
-    ("X1-Y4-Z1_0", 7),
-    ("X1-Y4-Z2_0", 8),
-    ("X2-Y2-Z2-FILLET_0", 9),
-    ("X2-Y2-Z2_0", 10),
-    ("X1-Y1-Z2_45", 11),
-    ("X1-Y2-Z1_45", 12),
-    ("X1-Y2-Z2-CHAMFER_45", 13),
-    ("X1-Y2-Z2_45", 14),
-    ("X1-Y2-Z2-TWINFILLET_45", 15),
-    ("X1-Y3-Z2-FILLET_45", 16),
-    ("X1-Y3-Z2_45", 17),
-    ("X1-Y4-Z1_45", 18),
-    ("X1-Y4-Z2_45", 19),
-    ("X2-Y2-Z2-FILLET_45", 20),
-    ("X2-Y2-Z2_45", 21),
-    ("X1-Y1-Z2_90", 22),
-    ("X1-Y2-Z1_90", 23),
-    ("X1-Y2-Z2-CHAMFER_90", 24),
-    ("X1-Y2-Z2_90", 25),
-    ("X1-Y2-Z2-TWINFILLET_90", 26),
-    ("X1-Y3-Z2-FILLET_90", 27),
-    ("X1-Y3-Z2_90", 28),
-    ("X1-Y4-Z1_90", 29),
-    ("X1-Y4-Z2_90", 30),
-    ("X2-Y2-Z2-FILLET_90", 31),
-    ("X2-Y2-Z2_90", 32),
-    ("X1-Y1-Z2_135", 33),
-    ("X1-Y2-Z1_135", 34),
-    ("X1-Y2-Z2-CHAMFER_135", 35),
-    ("X1-Y2-Z2_135", 36),
-    ("X1-Y2-Z2-TWINFILLET_135", 37),
-    ("X1-Y3-Z2-FILLET_135", 38),
-    ("X1-Y3-Z2_135", 39),
-    ("X1-Y4-Z1_135", 40),
-    ("X1-Y4-Z2_135", 41),
-    ("X2-Y2-Z2-FILLET_135", 42),
-    ("X2-Y2-Z2_135", 43),
-    ("X1-Y1-Z2_180", 44),
-    ("X1-Y2-Z1_180", 45),
-    ("X1-Y2-Z2-CHAMFER_180", 46),
-    ("X1-Y2-Z2_180", 47),
-    ("X1-Y2-Z2-TWINFILLET_180", 48),
-    ("X1-Y3-Z2-FILLET_180", 49),
-    ("X1-Y3-Z2_180", 50),
-    ("X1-Y4-Z1_180", 51),
-    ("X1-Y4-Z2_180", 52),
-    ("X2-Y2-Z2-FILLET_180", 53),
-    ("X2-Y2-Z2_180", 54),
-    ("X1-Y1-Z2_225", 55),
-    ("X1-Y2-Z1_225", 56),
-    ("X1-Y2-Z2-CHAMFER_225", 57),
-    ("X1-Y2-Z2_225", 58),
-    ("X1-Y2-Z2-TWINFILLET_225", 59),
-    ("X1-Y3-Z2-FILLET_225", 60),
-    ("X1-Y3-Z2_225", 61),
-    ("X1-Y4-Z1_225", 62),
-    ("X1-Y4-Z2_225", 63),
-    ("X2-Y2-Z2-FILLET_225", 64),
-    ("X2-Y2-Z2_225", 65),
-    ("X1-Y1-Z2_270", 66),
-    ("X1-Y2-Z1_270", 67),
-    ("X1-Y2-Z2-CHAMFER_270", 68),
-    ("X1-Y2-Z2_270", 69),
-    ("X1-Y2-Z2-TWINFILLET_270", 70),
-    ("X1-Y3-Z2-FILLET_270", 71),
-    ("X1-Y3-Z2_270", 72),
-    ("X1-Y4-Z1_270", 73),
-    ("X1-Y4-Z2_270", 74),
-    ("X2-Y2-Z2-FILLET_270", 75),
-    ("X2-Y2-Z2_270", 76),
-    ("X1-Y1-Z2_315", 77),
-    ("X1-Y2-Z1_315", 78),
-    ("X1-Y2-Z2-CHAMFER_315", 79),
-    ("X1-Y2-Z2_315", 80),
-    ("X1-Y2-Z2-TWINFILLET_315", 81),
-    ("X1-Y3-Z2-FILLET_315", 82),
-    ("X1-Y3-Z2_315", 83),
-    ("X1-Y4-Z1_315", 84),
-    ("X1-Y4-Z2_315", 85),
-    ("X2-Y2-Z2-FILLET_315", 86),
-    ("X2-Y2-Z2_315", 87),
+    ("X1-Y1-Z2", 0),
+    ("X1-Y2-Z1", 1),
+    ("X1-Y2-Z2-CHAMFER", 2),
+    ("X1-Y2-Z2", 3),
+    ("X1-Y2-Z2-TWINFILLET", 4),
+    ("X1-Y3-Z2-FILLET", 5),
+    ("X1-Y3-Z2", 6),
+    ("X1-Y4-Z1", 7),
+    ("X1-Y4-Z2", 8),
+    ("X2-Y2-Z2-FILLET", 9),
+    ("X2-Y2-Z2", 10)
 ]
 block_radius = 0.05
 
-#this will be divided by 100
+# this will be divided by 100
 MIN_X = 5
 MAX_X = 35
 MIN_Y = 20
@@ -135,6 +61,7 @@ def callback(img_msg_):
     global img_msg
     img_msg = img_msg_
 
+
 def clear(val):
     return str(val).replace("[", "").replace("]", "")
 
@@ -149,6 +76,10 @@ class ObjectSpawner(object):
                          Image,   callback=callback, queue_size=1)
         self._delete_model = rospy.ServiceProxy(
             '/gazebo/delete_model', DeleteModel)
+        self.set_model_state = rospy.ServiceProxy(
+            '/gazebo/set_model_state', SetModelState)
+        self.get_model_state = rospy.ServiceProxy(
+            '/gazebo/get_model_state', GetModelState)
         self.gazebo_models = []
 
     def updateModels(self):
@@ -172,7 +103,8 @@ class ObjectSpawner(object):
                 print("real world pos: ", block["pos"])
                 img_pos = self.fromWorldToImage(
                     np.matrix([[block["pos"][0]], [block["pos"][1]], [block["pos"][2]], [1]]))
-                cont += str(block["index"]) + " " + clear(img_pos[0]/1920) + " " + clear(img_pos[1]/1080) + " " + clear((block["cx"]-block["cx"]*0.5389*(902-img_pos[1])/480)/1920) + " " + clear((block["cy"]-block["cy"]*0.5389*(902-img_pos[1])/480)/1080) + "\n"
+                cont += str(block["index"]) + " " + clear(img_pos[0]/1920) + " " + clear(img_pos[1]/1080) + " " + clear((block["cx"]-block["cx"]
+                                                                                                                         * 0.5389*(902-img_pos[1])/480)/1920) + " " + clear((block["cy"]-block["cy"]*0.5389*(902-img_pos[1])/480)/1080) + "\n"
             f.write(cont)
 
     def randPos(self):
@@ -247,11 +179,19 @@ class ObjectSpawner(object):
                 except:
                     pass
 
+    def setStatic(self, model_name):
+        model_state = ModelState()
+        model_state.pose = self.get_model_state(model_name=model_name).pose
+        model_state.model_name = model_name
+        #model_state.is_static = True
+        self.set_model_state(model_state)
+
 
 spawner = ObjectSpawner()
 spawner.__init__()
 spawner.updateModels()
-#spawner.cleanModels()
+rospy.wait_for_service("/gazebo/get_model_state")
+# spawner.cleanModels()
 
 
 # while(True):
@@ -276,101 +216,50 @@ spawner.updateModels()
 #     img_counter += 1
 #     spawner.delete(blocks_info)
 
-while(True):
-    n_blocks = 3
-    used_blocks = blocks
-    shuffle(used_blocks)
-    blocks_info = []
-    for i in range(n_blocks):
-        angle_index = int(used_blocks[i][1]/11)
-        name = used_blocks[i][0].split("_")[0]
-        blocks_info.append({
-            "name": name,
-            "index": used_blocks[i][1],
-            "cx": boxes[name][angle_index]["size"][0],
-            "cy": boxes[name][angle_index]["size"][1],
-            "pos": spawner.randPos(),
-            "orient": [0, 0, float(boxes[used_blocks[i][0].split("_")[0]][angle_index]["angle"]) * 2 * pi / 360],
-        })
-    spawner.spawn(blocks_info, static=False)
-    time.sleep(1)
-    spawner.screenShot_and_label(blocks_info)
-    #img_counter += 1
-    input("Press Enter to continue...")
-    spawner.delete(blocks_info)
-
-# spawner.screenShot_and_label([{
-#     "name": "block_1",
-#     "index": 0,
-#     "cx": 0.1,
-#     "cy": 0.1,
-#     "pos": [0.5, 0.5, 0.5],
-#     "orient": [0, 0, 0]
-#     }])
-    
-
-
-# spawned = []
-
 # while (True):
-#     n_blocks = randint(1, 5)
+#     n_blocks = 3
 #     used_blocks = blocks
 #     shuffle(used_blocks)
 #     blocks_info = []
-#     print("#################################################################")
 #     for i in range(n_blocks):
-#         pos = spawner.randPos()
+#         angle_index = int(used_blocks[i][1]/11)
+#         name = used_blocks[i][0].split("_")[0]
 #         blocks_info.append({
-#             "name": used_blocks[i][0],
+#             "name": name,
 #             "index": used_blocks[i][1],
-#             "cx": used_blocks[i][2],
-#             "cy": used_blocks[i][3],
-#             "pos": pos,
-#             "orient": [0, 0, 0]
+#             "cx": boxes[name][angle_index]["size"][0],
+#             "cy": boxes[name][angle_index]["size"][1],
+#             "pos": spawner.randPos(),
+#             "orient": [pi/2, pi/2, float(boxes[used_blocks[i][0].split("_")[0]][angle_index]["angle"]) * 2 * pi / 360],
 #         })
-        
-#         print("block " + used_blocks[i][0] + " should spawns at: " + str(pos))
-#         wi = spawner.fromWorldToImage([[pos[0]], [pos[1]], [pos[2]], [1]])
-#         wi_parsed = [int(float(str(wi[0]).replace("[", "").replace("]", ""))), int(
-#             float(str(wi[1]).replace("[", "").replace("]", "")))]
-#         print("in the image should be at: " + str(wi_parsed))
-#         print("calculated world position: " +
-#               str(fromImageToWorld(wi_parsed)))
-#         print("\n")
-#     print("#################################################################")
 #     spawner.spawn(blocks_info, static=False)
-#     time.sleep(2)
+#     time.sleep(1)
 #     spawner.screenShot_and_label(blocks_info)
-#     spawned.append(blocks_info)
-#     if (input("Press Enter to continue...") == "q"):
-#         break
-
-# spawner.delete(spawned)
-
-
-# block scan
-#
-# for block in blocks:
-#     b = {
-#         "name": block[0],
-#         "index": block[1],
-#         "pos": [0.02, 0.4, 0.87],
-#         "orient": [0, 0, 0],
-#         "cx": block[2],
-#         "cy": block[3]
-#     }
-#     spawner.spawn([b], static=True)
-#     time.sleep(2)
-#     spawner.screenShot_and_label([b])
+#     # img_counter += 1
+#     spawner.setStatic("ur5")
 #     input("Press Enter to continue...")
-#     spawner.delete([b])
+#     spawner.delete(blocks_info)
 
-# spawner.spawn([{
-#     "name": "X1-Y1-Z2",
-#     "index": 0,
-#     "pos": [-0.39, 0.59, 1.39],
-#     "orient": [0, 0, 0]
-# }], static=True)
+block_n = 3
+
+while (True):
+    used_blocks = blocks
+    blocks_info = []
+    name = used_blocks[block_n][0]
+    angle_val = random.randint(0,360)
+    sizes = boxes[block_n][int((angle_val+45/2)/45)]["size"]
+    blocks_info.append({
+        "name": name,
+        "index": used_blocks[0][1],
+        "cx": sizes[0],
+        "cy": sizes[1],
+        "pos": [0.39, 0.59, 1.39],
+        "orient": [random.randint(1,4) * pi/2, 0, angle_val * 2 * pi / 360],
+    })
+    spawner.spawn(blocks_info, static=True)
+    input("Press Enter to continue...")
+    spawner.delete(blocks_info)
+
 # spawner.spawn([{
 #     "name": "X1-Y1-Z2",
 #     "index": 0,
