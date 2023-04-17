@@ -39,16 +39,6 @@
       {"angle": 270, "size": [93, 126]},
       {"angle": 315, "size": [117, 102]}
     ],
-    "X1-Y2-Z2-TWINFILLET": [
-      {"angle": 0, "size": [117, 107]},
-      {"angle": 45, "size": [116, 114]},
-      {"angle": 90, "size": [81, 124]},
-      {"angle": 135, "size": [116, 114]},
-      {"angle": 180, "size": [117, 107]},
-      {"angle": 225, "size": [116, 114]},
-      {"angle": 270, "size": [81, 124]},
-      {"angle": 315, "size": [116, 114]}
-    ],
     "X1-Y3-Z2-FILLET": [
         { "angle": 0, "size": [149, 103] },
         { "angle": 45, "size": [143, 139] },

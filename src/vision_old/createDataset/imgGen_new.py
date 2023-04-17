@@ -25,13 +25,12 @@ blocks = [
     ("X1-Y2-Z1", 1),
     ("X1-Y2-Z2-CHAMFER", 2),
     ("X1-Y2-Z2", 3),
-    ("X1-Y2-Z2-TWINFILLET", 4),
-    ("X1-Y3-Z2-FILLET", 5),
-    ("X1-Y3-Z2", 6),
-    ("X1-Y4-Z1", 7),
-    ("X1-Y4-Z2", 8),
-    ("X2-Y2-Z2-FILLET", 9),
-    ("X2-Y2-Z2", 10)
+    ("X1-Y3-Z2-FILLET", 4),
+    ("X1-Y3-Z2", 5),
+    ("X1-Y4-Z1", 6),
+    ("X1-Y4-Z2", 7),
+    ("X2-Y2-Z2-FILLET", 8),
+    ("X2-Y2-Z2", 9)
 ]
 block_radius = 0.05
 
@@ -40,7 +39,7 @@ MIN_X = 5
 MAX_X = 35
 MIN_Y = 20
 MAX_Y = 75
-H = 87
+H = 95
 
 # MIN_X = 5
 # MAX_X = 95
@@ -50,7 +49,7 @@ H = 87
 
 img_msg = None
 
-img_counter = 4710
+img_counter = 0
 
 boxes = {}
 with open("boxes.json", "r") as f:
@@ -104,7 +103,7 @@ class ObjectSpawner(object):
                 img_pos = self.fromWorldToImage(
                     np.matrix([[block["pos"][0]], [block["pos"][1]], [block["pos"][2]], [1]]))
                 cont += str(block["index"]) + " " + clear(img_pos[0]/1920) + " " + clear(img_pos[1]/1080) + " " + clear((block["cx"]-block["cx"]
-                                                                                                                         * 0.5389*(902-img_pos[1])/480)/1920) + " " + clear((block["cy"]-block["cy"]*0.5389*(902-img_pos[1])/480)/1080) + "\n"
+                                                                                                                         * 0.5389*(902-img_pos[1])/480)/1) + " " + clear((block["cy"]-block["cy"]*0.5389*(902-img_pos[1])/480)/1) + "\n"
             f.write(cont)
 
     def randPos(self):
@@ -240,23 +239,35 @@ rospy.wait_for_service("/gazebo/get_model_state")
 #     input("Press Enter to continue...")
 #     spawner.delete(blocks_info)
 
-block_n = 3
+block_n = 8
+
+vertical_orient = [-pi/2, 0, pi]
 
 while (True):
     used_blocks = blocks
     blocks_info = []
     name = used_blocks[block_n][0]
-    angle_val = random.randint(0,360)
-    sizes = boxes[block_n][int((angle_val+45/2)/45)]["size"]
+    angle_val = random.randint(0,359)
+    sizes = boxes[name][int(((angle_val+45/2)%360)/45)]["size"]
+    block_v_orient = random.choice(vertical_orient)
+    if(block_v_orient == -pi/2):
+        sizes = boxes[name][2]["size"]
+        sizes[0] += 35
     blocks_info.append({
         "name": name,
-        "index": used_blocks[0][1],
+        "index": used_blocks[block_n][1],
         "cx": sizes[0],
         "cy": sizes[1],
-        "pos": [0.39, 0.59, 1.39],
-        "orient": [random.randint(1,4) * pi/2, 0, angle_val * 2 * pi / 360],
+        "pos": spawner.randPos(),
+        #"orient": [random.randint(1,4) * pi/2, 0, angle_val * 2 * pi / 360],
+        "orient": [block_v_orient, 0, angle_val * 2 * pi / 360],
     })
-    spawner.spawn(blocks_info, static=True)
+    block_n += 1
+    block_n = block_n % len(blocks)
+    spawner.spawn(blocks_info, static=False)
+    time.sleep(1)
+    spawner.screenShot_and_label(blocks_info)
+    print(sizes)
     input("Press Enter to continue...")
     spawner.delete(blocks_info)
 
