@@ -35,6 +35,8 @@ class InverseKinematic
     previous_choice = 0;
   }
 
+  //getters e setters
+
   /*!
    * Inizializza attributi della classi quali: punto da raggiungere, matrice di rotazione e valore del gripper.
    */
@@ -43,6 +45,18 @@ class InverseKinematic
     _gripper = g;
     R = getRotationMatrix(m);
     point = p;
+  }
+
+  void setCurrentPosition(Matrix<double, 6, 1> q) {
+    this->current_position = q;
+  }
+
+  Matrix<double, 6, 1> getCurrentPosition() {
+    return this->current_position;
+  }
+
+  double getCurrentGripper() {
+    return this->_gripper;
   }
 
   Vector3d fromUr5ToWorld(Vector3d p) {
@@ -60,7 +74,7 @@ class InverseKinematic
 
   int scelta(Matrix<double, 6, 1> q0, Matrix<double, 8, 6> joint_configurations)
   {
-    if(!check_collisions(this->previous_choice)) return this->previous_choice;
+    if(!check_collisions(q0, joint_configurations.row(this->previous_choice))) return this->previous_choice;
     int i = 0;
     for (; i < 8; i++)
     {
@@ -75,12 +89,21 @@ class InverseKinematic
     return previous_choice;
   }
 
+  Matrix<double, 6, 1> secondOrderFilter(const Matrix<double, 6, 1> & input, const double rate, const double settling_time, Matrix<double, 6, 1> &f1, Matrix<double, 6, 1> &f2)
+  {
+    double dt = 1 / rate;
+    double gain =  dt / (0.1*settling_time + dt);
+    f1 = (1 - gain) * f1 + gain * input;
+    f2 = (1 - gain) * f2 + gain *f1;
+    return f2;
+  }
+
   bool check_collisions(Matrix<double, 6, 1> q0, Matrix<double, 6, 1> q1)
   {
     const double MURO = 0.1;
     const double BLOCCO = 0.2;
-    const double TAVOLO_ALTO = 1.75; 
-    const double TAVOLO_BASSO = 0.87; 
+    const double TAVOLO_ALTO = 1.75;
+    const double TAVOLO_BASSO = 0.87;
     int nsamples = 100;
 
     int i = 0;
@@ -121,7 +144,7 @@ class InverseKinematic
         cout << "printing joint states" << endl;
         print_joints(joints);
       }*/
-      
+
       Matrix<double, 4, 4> T;
       T = T10 * T21 * T32 * T43 * T54 * T65;
       Vector3d z_axis;
@@ -133,7 +156,7 @@ class InverseKinematic
       gripperPosition = fromUr5ToWorld(T.col(3).head(3) + z_axis*gripper_size);
       Vector3d gripper_positions[6];
 
-      if(gripperPosition(2) < 1 && gripperPosition(1) < BLOCCO) { 
+      if(gripperPosition(2) < 1 && gripperPosition(1) < BLOCCO) {
         cout << "gripper blocco collision, position:" << endl << gripperPosition << endl;
         return true;
       }
@@ -153,7 +176,7 @@ class InverseKinematic
         {
           cout << "joint j: " << j << ", y failed for this point: " << world_coords << endl;
           return true;
-        } 
+        }
         //tavolo_alto = 1.75
         //tavolo_basso = 0.85
         if (world_coords(2) > TAVOLO_ALTO || world_coords(2) < TAVOLO_BASSO )// 0.85 < z < 1.75
@@ -161,12 +184,12 @@ class InverseKinematic
           cout << "joint j:" << j << ", z failed for this point: " << endl << world_coords << endl;
           cout << "conditions: " << world_coords(2) << ">" << TAVOLO_ALTO << " || " << world_coords(2) << "<" << TAVOLO_BASSO << endl;
           return true;
-        } 
+        }
         if(world_coords(2) < 1 && world_coords(1) < BLOCCO) {
           cout << "joint j:" << j << ", y failed for this point: " << world_coords << endl;
           cout << "z value: " << world_coords(2) << " and y value: " << world_coords(1) << endl;
           return true;
-        } 
+        }
       }
     }
     return false;
@@ -186,21 +209,29 @@ class InverseKinematic
   /*!
    * Ritorna coordinate secondo il frame del robot date coordinate secondo il frame del mondo.
    */
+  // Vector3d fromWorldToUrd5(Vector3d p)
+  // {
+  //   Vector3d Urd5Coords(0.501, 0.352, 1.754);
+  //   Vector3d result = p - Urd5Coords;
+  //   result(0) = result(0);
+  //   result(1) = -result(1);
+  //   result(2) = -result(2);
+  //   return result;
+  // }
+
   Vector3d fromWorldToUrd5(Vector3d p)
   {
-    std::cout << "p: " << p << std::endl;
-    Vector3d Urd5Coords(0.501, 0.352, 1.754);
-    Vector3d result = p - Urd5Coords;
-    result(0) = result(0);
-    result(1) = -result(1);
-    result(2) = -result(2);
-    // std::cout << "ToUrd5Coords: " << p-Urd5Coords << std::endl;
-    // double a, b, c; std::cin >> a >> b >> c;
-    // return Vector3d(a, b, c);
-    std::cout << result << endl;
-    return result;
-  }
+    Vector3d Ur5Coords(0.501, 0.352, 1.754);
+    Vector4d homogeneous_p; homogeneous_p << p, 1;
+    Matrix<double, 4, 4> r;
+    r <<
+    1, 0, 0, -Ur5Coords(0),
+    0, -1, 0, Ur5Coords(1),
+    0, 0, -1, Ur5Coords(2),
+    0, 0, 0, 1;
 
+    return (r * homogeneous_p).head(3);
+  }
   /*!
    * Computa la matrice di rotazione specificati gli angoli di roll, pitch e yaw
    */
@@ -277,9 +308,7 @@ class InverseKinematic
 
     T = T10 * T21 * T32 * T43 * T54 * T65;
 
-    Matrix<double, 4, 1> unit(0, 0, 0, 1);
-
-    return (T * unit).head(3);
+    return T.col(3).head(3);
   }
 
   private:
@@ -290,7 +319,7 @@ class InverseKinematic
   {
     Matrix<double, 4, 4> T;
 
-    T << 
+    T <<
       cos(theta), -sin(theta), 0, a,
       sin(theta) * cos(alpha), cos(theta) * cos(alpha), -sin(alpha), -sin(alpha) * d,
       sin(theta) * sin(alpha), cos(theta) * sin(alpha), cos(alpha), cos(alpha) * d,

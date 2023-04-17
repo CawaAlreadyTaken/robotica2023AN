@@ -1,13 +1,23 @@
+/*
+  TODO:
+    - invKin stays, figure out how to avoid collisions
+    - read actual joint states from topic
+*/
+
 #include <custom_joint_publisher.h>
 #include <math.h>
 #include <vision/custMsg.h>
 
 #include "inverseKin.cpp"
+#include "differentialKin.cpp"
+
+#define POW(X) X*X
 
 const double pi = 2 * acos(0.0);
 Vector3d finalDestination;
 ros::Subscriber sub;
 
+DifferentialKinematic diffKin;
 InverseKinematic invKin;
 bool is_moving;
 
@@ -19,35 +29,122 @@ void send_des_jstate(const JointStateVector& joint_pos) {
   pub_des_jstate.publish(jointState_msg_robot);
 }
 
-void moveRobot(Vector3d dest, double height, double g, double time) {
-  int choice = 5;
+double euclidean_distance(Vector3d p1, Vector3d p2) {
+  return sqrt(POW(p1(0) - p2(0)) + POW(p1(1) - p2(1)) + POW(p1(2) - p2(2)));
+}
+
+Vector3d linear_interpol(Vector3d pi, Vector3d pf, double t)
+{
+  return t * (pf) + (1 - t) * pi;
+}
+
+Vector3d linear_velocity(Vector3d pi, Vector3d pf) {
+  return (pf - pi);
+}
+
+Vector3d trapezoidal_velocity(Vector3d pi, Vector3d pf, double t) {
+  Vector3d acc = (pf - pi) * 16 / 3;
+  Vector3d vel = acc/4;
+
+  if(t >= 1) {
+    return Vector3d(0, 0, 0);
+  }
+
+  if(t <= 0.25) {
+    return acc * t;
+  }
+
+  if(t > 0.25 && t <= 0.75) {
+    return vel;
+  }
+
+  if(t > 0.75 && t < 1) {
+    return vel - acc * (t - 0.75);
+  }
+}
+
+void move_to(Vector3d pf, Vector3d rpy, double gripper = 0, double k=0.1, double k_rpy=0.1)  {
   ros::Rate loop_rate(loop_frequency);
-  dest(2) = height;
-  Vector3d m(0, 0, pi);
-  JointStateVector q_des;
-  JointStateVector q_des_filtered;
-  invKin.setDestinationPoint(dest,m,g);
-  invKin.getJointsPositions(q_des);
-  while (loop_time < TIME_FOR_MOVING) {
-    q_des_filtered = secondOrderFilter(q_des, loop_frequency, time);
-    send_des_jstate(q_des_filtered);
+
+  Vector3d ee_pos = diffKin.getEECoords();
+  Vector3d current_rpy = diffKin.getEulerAngles();
+
+  Matrix<double, 6, 1> q0;
+  Matrix<double, 6, 1> qk;
+  Vector3d v;
+  Vector3d v_rpy;
+  JointStateVector to_send;
+  Matrix<double, 3, 3> K;
+  Matrix<double, 3, 3> K_rpy;
+
+  K <<
+  k, 0, 0,
+  0, k, 0,
+  0, 0, k;
+  K_rpy <<
+  k_rpy, 0, 0,
+  0, k_rpy, 0,
+  0, 0, k_rpy;
+
+  double Dt = (double)1 / (loop_frequency * TIME_FOR_MOVING);
+  double t = Dt;
+
+
+  q0 << diffKin.getCurrentPosition(); //current joint coordinates
+  qk = q0;
+  v = linear_velocity(diffKin.getEECoords(), pf); // in robot coords
+  v_rpy << 0, 0, 0;
+
+  while(loop_time <= TIME_FOR_MOVING - Dt) {
+    Matrix<double, 6, 1> tmp = qk;
+
+    qk += diffKin.Qdot(qk, linear_interpol(ee_pos, pf, t), trapezoidal_velocity(ee_pos, pf, t), linear_interpol(current_rpy, rpy, t) , v_rpy, K, K_rpy) * Dt;
+
+    to_send << qk, gripper, gripper, gripper;
+    send_des_jstate(to_send);
+
     loop_time += (double)1 / loop_frequency;
+    t+=Dt;
+
     ros::spinOnce();
     loop_rate.sleep();
   }
+
+  loop_rate.sleep(); // serve per far arrivare loop_time a 3 secondi esatti
+
+  diffKin.setRobotsPosition(qk);
   loop_time = 0;
-  std::cout << "Robot moved" << std::endl;
+
+  // ee_pos = diffKin.getEECoords();
+  // cout << "final position reached, in robot coordinates: " << endl << ee_pos << endl;
+  // cout << "final position reached, in world coordinates: " << endl << diffKin.fromUr5ToWorld(ee_pos) << endl;
 }
 
-void getMoveAndDropObject(Vector3d initialPosition, Vector3d finalPosition) {
-  moveRobot(initialPosition, UP_HEIGHT, OPEN_GRIP, TIME_FOR_MOVING);
-  moveRobot(initialPosition, DOWN_HEIGHT, OPEN_GRIP, TIME_FOR_LOWERING_RISING);
-  moveRobot(initialPosition, DOWN_HEIGHT, CLOSE_GRIP, TIME_FOR_CLOSING_OPENING);
-  moveRobot(initialPosition, UP_HEIGHT, CLOSE_GRIP, TIME_FOR_LOWERING_RISING);
-  moveRobot(finalPosition, UP_HEIGHT, CLOSE_GRIP, TIME_FOR_MOVING);
-  moveRobot(finalPosition, DOWN_HEIGHT, CLOSE_GRIP, TIME_FOR_LOWERING_RISING);
-  moveRobot(finalPosition, DOWN_HEIGHT, OPEN_GRIP, TIME_FOR_CLOSING_OPENING);
-  moveRobot(finalPosition, UP_HEIGHT, OPEN_GRIP, TIME_FOR_LOWERING_RISING);
+void pick_and_place(Vector3d pick, Vector3d place) {
+
+  // assume i start at a set height
+  Vector3d rpy; rpy << 0, 0, pi;
+  pick(2) = UP_HEIGHT;
+  move_to(pick, rpy);
+
+  pick(2) = DOWN_HEIGHT;
+  move_to(pick, rpy, OPEN_GRIP);
+
+  move_to(pick, rpy, CLOSE_GRIP);
+
+  pick(2) = UP_HEIGHT;
+  move_to(pick, rpy, CLOSE_GRIP);
+
+  place(2) = UP_HEIGHT;
+  move_to(place, rpy, CLOSE_GRIP);
+
+  place(2) = DOWN_HEIGHT;
+  move_to(place, rpy, CLOSE_GRIP);
+
+  move_to(place, rpy, OPEN_GRIP);
+
+  place(2) = UP_HEIGHT;
+  move_to(place, rpy);
 }
 
 void visionCallback(const vision::custMsg::ConstPtr& msg) {
@@ -63,7 +160,7 @@ void visionCallback(const vision::custMsg::ConstPtr& msg) {
   Vector3d Ur5Coords = invKin.fromWorldToUrd5(WorldCoords);
   Vector3d finalDestination = invKin.fromWorldToUrd5(FINAL_POSITIONS[(msg->index)%NUMBER_OF_CLASSES]);
 
-  getMoveAndDropObject(Ur5Coords, finalDestination);
+  pick_and_place(Ur5Coords, finalDestination);
   sub.shutdown();  // Assignment1 only has one block
   is_moving = false;
   exit(0);
@@ -84,13 +181,33 @@ JointStateVector secondOrderFilter(const JointStateVector& input,
   return filter_2;
 }
 
+void homing_procedure() {
+  Vector3d dest(0.2, -0.4, 0.58);
+  ros::Rate loop_rate(loop_frequency);
+  Vector3d m(0, 0, pi);
+  JointStateVector q_des;
+  JointStateVector q_des_filtered;
+  invKin.setDestinationPoint(dest,m,0);
+  invKin.getJointsPositions(q_des);
+  while (loop_time < TIME_FOR_MOVING) {
+    q_des_filtered = secondOrderFilter(q_des, loop_frequency, TIME_FOR_MOVING);
+    send_des_jstate(q_des_filtered);
+    loop_time += (double)1 / loop_frequency;
+    ros::spinOnce();
+    loop_rate.sleep();
+  }
+
+  loop_time = 0;
+  diffKin.setRobotsPosition(q_des_filtered.head(6)); // actual position
+}
+
 int main(int argc, char** argv) {
   ros::init(argc, argv, "custom_joint_publisher");
   ros::NodeHandle node;
   is_moving = false;
   node.getParam("/real_robot", real_robot);
-  invKin = InverseKinematic();
-  finalDestination << 0.35, -0.35, DOWN_HEIGHT;
+  // invKin = InverseKinematic();
+  diffKin = DifferentialKinematic();
 
   pub_des_jstate = node.advertise<std_msgs::Float64MultiArray>(
       "/ur5/joint_group_pos_controller/command", 1);
@@ -105,11 +222,12 @@ int main(int argc, char** argv) {
   jointState_msg_sim.effort.resize(9);
   jointState_msg_robot.data.resize(9);
 
-  JointStateVector q_des_init;
-  q_des_init << 0, 0, 0, 0, 0, 0, 0, 0, 0;
-  initFilter(q_des_init);
+  // JointStateVector q_des_init;
+  // q_des_init << 0, 0, 0, 0, 0, 0, 0, 0, 0;
+  // initFilter(q_des_init);
 
-  std::cout << "Reached home" << std::endl;
+  homing_procedure();
+  cout << "reached home" << endl;
 
   while (ros::ok()) {
     ros::spinOnce();
