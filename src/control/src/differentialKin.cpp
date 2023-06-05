@@ -1,16 +1,24 @@
+#pragma once
+
 #include <iostream>
 #include <cmath>
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 #include <Eigen/Eigenvalues>
+#include <custom_joint_publisher.h>
 
 using namespace std;
 using namespace Eigen;
 
+
+
+typedef vector<vector<Matrix<double, 6, 1>>> Jointmap;
+
+
 /*!
- * Classe per computare la soluzione analitica dell'inverse kinematic del braccio UR5, adattata dal paper: https://smartech.gatech.edu/bitstream/handle/1853/50782/ur_kin_tech_report_1.pdf?sequence=1
- */
+* Classe per computare la soluzione analitica dell'inverse kinematic del braccio UR5, adattata dal paper: https://smartech.gatech.edu/bitstream/handle/1853/50782/ur_kin_tech_report_1.pdf?sequence=1
+*/
 class DifferentialKinematic
 {
 
@@ -25,8 +33,8 @@ class DifferentialKinematic
 
 public:
   /*!
-   * Inizializza alcuni parametri noti, come le lunghezze del robot.
-   */
+  * Inizializza alcuni parametri noti, come le lunghezze del robot.
+  */
   DifferentialKinematic()
   {
     pi = 2 * acos(0.0);
@@ -79,8 +87,8 @@ public:
   }
 
   /*!
-   * Metodo che ritorna le velocità da applicare all'end effector dati una serie di parametri
-   */
+  * Metodo che ritorna le velocità da applicare all'end effector dati una serie di parametri
+  */
   Matrix<double, 6, 1> Qdot(Matrix<double, 6, 1> joint_states, Vector3d desired_pos, Vector3d desired_pos_vel, Vector3d desired_RPY, Vector3d desired_RPY_velocities, Matrix<double, 3, 3> Kq, Matrix<double, 3, 3> KRPY)
   {
     Matrix<double, 6, 1> Qdot;
@@ -141,7 +149,7 @@ public:
     return (r * homogeneous_p).head(3);
   }
 
-  Vector3d fromWorldToUrd5(Vector3d p)
+  Vector3d fromWorldToUr5(Vector3d p)
   {
     Vector3d Ur5Coords(0.501, 0.352, 1.754);
     Vector4d homogeneous_p;
@@ -156,8 +164,8 @@ public:
   }
 
   /*!
-   * computa la matrice di rototraslazione corrispondente alla mano del robot
-   */
+  * computa la matrice di rototraslazione corrispondente alla mano del robot
+  */
   Matrix<double, 4, 4> ur5_direct(Matrix<double, 6, 1> joint_values)
   {
     double th1 = joint_values(0);
@@ -188,19 +196,19 @@ public:
     0, 0, 1, D(2),
     0, 0, 0, 1;
 
-      // fourth matrix
+    // fourth matrix
     Matrix<double, 4, 4> T43;
     T43 << cos(th4), -sin(th4), 0, A(2),
     sin(th4), cos(th4), 0, 0,
     0, 0, 1, D(3),
     0, 0, 0, 1;
-      // fifth matrix
+    // fifth matrix
     Matrix<double, 4, 4> T54;
     T54 << cos(th5), -sin(th5), 0, 0,
     0, 0, -1, -D(4),
     sin(th5), cos(th5), 0, 0,
     0, 0, 0, 1;
-      // sixth matrix
+    // sixth matrix
     Matrix<double, 4, 4> T65;
     T65 << cos(th6), -sin(th6), 0, 0,
     0, 0, 1, D(5),
@@ -214,114 +222,224 @@ public:
     return T;
   }
 
+  Vector3d linear_interpol(Vector3d pi, Vector3d pf, double t)
+  {
+    return t * (pf) + (1 - t) * pi;
+  }
+
+  Vector3d trapezoidal_velocity(Vector3d pi, Vector3d pf, double t) {
+    Vector3d acc = (pf - pi) * 16 / 3;
+    Vector3d vel = acc/4;
+
+    if(t >= 1) {
+      return Vector3d(0, 0, 0);
+    }
+
+    if(t <= 0.25) {
+      return acc * t;
+    }
+
+    if(t > 0.25 && t <= 0.75) {
+      return vel;
+    }
+
+    if(t > 0.75 && t < 1) {
+      return vel - acc * (t - 0.75);
+    }
+
+    return Vector3d::Zero();
+  }
+
+  Vector3d linear_velocity(Vector3d pi, Vector3d pf) {
+    return (pf - pi);
+  }
+
+  bool check_collisions(Vector3d pi_coords, Vector3d pf_coords)  {
+    Vector3d rpy(0, 0, pi);
+    Matrix<double, 6, 1> qk;
+    int nsamples = 2;
+    double Dt = (double)1 / nsamples;
+    double t = Dt;
+    vector<Matrix<double, 6, 1>> samples;
+
+    qk = current_position;
+    while(t <= 1) {
+      qk += Qdot(qk, linear_interpol(pi_coords, pf_coords, t), linear_velocity(pi_coords, pf_coords), rpy , Matrix<double, 3, 1>::Zero(), Matrix<double, 3, 3>::Identity() * 0.1, Matrix<double, 3, 3>::Identity() * 0.1) * Dt;
+      samples.push_back(qk);
+
+      t+=Dt;
+    }
+
+    int k = 0;
+    for(auto sample: samples) {
+      vector<Vector3d> robot_joint_coords = get_joints_positions(sample);
+      for(int i = 2; i < 6; i++) {
+        if(check_world_collisions(robot_joint_coords[i])) {
+          cout << "failed for sample " << k << endl;
+          cout << "failed for joint " << i << ", at coords:" << endl << robot_joint_coords[i] << endl;
+          return true;
+        }
+      }
+      k++;
+    }
+
+    return false;
+  }
+
+  double close_to_collisions(Vector3d pos1, Vector3d pos2, Matrix<double, 6, 1> joints) {
+   const double MURO = 0.1;
+   const double BLOCCO = 0.2;
+   const double TAVOLO_ALTO = 1.75;
+   const double TAVOLO_BASSO = 0.87;
+   const double ALTEZZA_MURO = 1;
+   const int SCALE = 10;
+   const int nsamples = 10;
+
+   double cost = 0;
+   double threshold = 1000;
+
+   // correct
+   Matrix<double, 6, 1> q; q = joints;
+
+   Vector3d pos1_rcoords; pos1_rcoords = fromWorldToUr5(pos1);
+   Vector3d pos2_rcoords; pos2_rcoords = fromWorldToUr5(pos2);
+
+   vector<Matrix<double, 6, 1>> sampled_joints(nsamples-1); // we start from t = dt, like in the move_to function
+
+   for(int i = 1; i < nsamples; i++) {
+    q += Qdot(q, linear_interpol(pos1_rcoords, pos2_rcoords, (double)i/nsamples), linear_velocity(pos1_rcoords, pos2_rcoords), Vector3d(0, 0, pi), Vector3d::Zero(), Matrix3d::Identity() * 0.1, Matrix3d::Identity() * 0.1) * (double)1/nsamples;
+    
+    vector<Vector3d> joint_positions = get_joints_positions(q);
+    for(int i = 2; i < 6; i++) {
+      cost += abs(joint_positions[i](1) - MURO);
+      if(joint_positions[i](2) < ALTEZZA_MURO) cost += abs(joint_positions[i](1) - BLOCCO);
+      cost += abs(joint_positions[i](2) - TAVOLO_BASSO);
+      cost += abs(joint_positions[i][2] - TAVOLO_ALTO);
+    }
+  } 
+
+  //debugging: check sampling
+  // cout << "in diffKin:" << endl;
+  // cout << "start wcoords: " << pos1(0) << ", " << pos1(1) << endl;
+  // cout << "start jcoords" << endl << joints << endl << endl;
+
+  // cout << "end wcoords: " << pos2(0) << ", " << pos2(1) << endl;
+  // cout << "end jcoords:" << endl << q << endl << endl << endl;
+
+  if(cost > threshold) return 0;
+  return (double) 100 / (cost);
+}
+
+
 private:
- Vector3d fromRotToRPY(Matrix<double, 3, 3> R) // ritorna il risultato in radianti
- {
-  double roll, pitch, yaw;
-  const double pi = 2 * acos(0.0);
-  const double epsilon = 0.01;
-  if((R(0, 0) >= R(0, 1) - epsilon && R(0, 0) <= R(0, 1) + epsilon) && (R(0, 0) < epsilon && R(0, 0) > -epsilon)) {
-    yaw = 0;
-    pitch = pi/2;
-    roll = atan2(R(0, 1), R(1, 1));
-  } else {
-    yaw = atan2(R(1, 0), R(0, 0));
-    pitch = atan2(-R(2, 0), sqrt(R(0, 0) * R(0, 0) + R(1, 0) * R(1, 0)));
-    roll = atan2(R(2, 1), R(2, 2));
+  Vector3d fromRotToRPY(Matrix<double, 3, 3> R) // radianti
+  {
+    double roll, pitch, yaw;
+    const double pi = 2 * acos(0.0);
+    const double epsilon = 0.01;
+    //TODO: use abs(diff) < threshold
+    if((R(0, 0) >= R(0, 1) - epsilon && R(0, 0) <= R(0, 1) + epsilon) && (R(0, 0) < epsilon && R(0, 0) > -epsilon)) {
+      yaw = 0;
+      pitch = pi/2;
+      roll = atan2(R(0, 1), R(1, 1));
+    } else {
+      yaw = atan2(R(1, 0), R(0, 0));
+      pitch = atan2(-R(2, 0), sqrt(R(0, 0) * R(0, 0) + R(1, 0) * R(1, 0)));
+      roll = atan2(R(2, 1), R(2, 2));
+    }
+
+    return Vector3d(roll, pitch, yaw);
   }
 
-  return Vector3d(roll, pitch, yaw);
+  /*!
+  * Computa la matrice di rotazione specificati gli angoli di roll, pitch e yaw
+  */
+  Matrix<double, 3, 3> getRotationMatrix(Vector3d m)
+  {
+    Matrix<double, 3, 3> x;
+    Matrix<double, 3, 3> y;
+    Matrix<double, 3, 3> z;
+    x << 1, 0, 0,
+    0, cos(m(0)), -sin(m(0)),
+    0, sin(m(0)), cos(m(0));
+    y << cos(m(1)), 0, sin(m(1)),
+    0, 1, 0,
+    -sin(m(1)), 0, cos(m(1));
+    z << cos(m(2)), -sin(m(2)), 0,
+    sin(m(2)), cos(m(2)), 0,
+    0, 0, 1;
+    return z * y * x;
   }
 
   /*!
-   * Computa la matrice di rotazione specificati gli angoli di roll, pitch e yaw
-   */
-Matrix<double, 3, 3> getRotationMatrix(Vector3d m)
-{
-  Matrix<double, 3, 3> x;
-  Matrix<double, 3, 3> y;
-  Matrix<double, 3, 3> z;
-  x << 1, 0, 0,
-  0, cos(m(0)), -sin(m(0)),
-  0, sin(m(0)), cos(m(0));
-  y << cos(m(1)), 0, sin(m(1)),
-  0, 1, 0,
-  -sin(m(1)), 0, cos(m(1));
-  z << cos(m(2)), -sin(m(2)), 0,
-  sin(m(2)), cos(m(2)), 0,
-  0, 0, 1;
-  return z * y * x;
-}
+  * Rappresentazione della matrice di rotazione valida per ogni joint, secondo i parametri di Denavit-Hartenberg
+  */
+  Matrix<double, 4, 4> rot(double alpha, double a, double d, double theta)
+  {
+    Matrix<double, 4, 4> T;
+
+    T << cos(theta), -sin(theta), 0, a,
+    sin(theta) * cos(alpha), cos(theta) * cos(alpha), -sin(alpha), -sin(alpha) * d,
+    sin(theta) * sin(alpha), cos(theta) * sin(alpha), cos(alpha), cos(alpha) * d,
+    0, 0, 0, 1;
+
+    return T;
+  }
+
+  Vector3d cross_prod(Vector3d u, Vector3d v)
+  {
+    return Vector3d(u(1) * v(2) - u(2) * v(1), u(2) * v(0) - u(0) * v(2), u(0) * v(1) - u(1) * v(0));
+  }
 
   /*!
-   * Rappresentazione della matrice di rotazione valida per ogni joint, secondo i parametri di Denavit-Hartenberg
-   */
-Matrix<double, 4, 4> rot(double alpha, double a, double d, double theta)
-{
-  Matrix<double, 4, 4> T;
-
-  T << cos(theta), -sin(theta), 0, a,
-  sin(theta) * cos(alpha), cos(theta) * cos(alpha), -sin(alpha), -sin(alpha) * d,
-  sin(theta) * sin(alpha), cos(theta) * sin(alpha), cos(alpha), cos(alpha) * d,
-  0, 0, 0, 1;
-
-  return T;
-}
-
-Vector3d cross_prod(Vector3d u, Vector3d v)
-{
-  return Vector3d(u(1) * v(2) - u(2) * v(1), u(2) * v(0) - u(0) * v(2), u(0) * v(1) - u(1) * v(0));
-}
-
-  /*!
-   * Computa la matrice jacobiana per una data configurazione dei giunti
-   */
-Matrix<double, 6, 6> jacobian(Matrix<double, 6, 1> joint_values)
-{
+  * Computa la matrice jacobiana per una data configurazione dei giunti
+  */
+  Matrix<double, 6, 6> jacobian(Matrix<double, 6, 1> joint_values)
+  {
     // first matrix, rotation around z and translation about z
-  Matrix<double, 4, 4> T10;
-  T10 = rot(0, 0, D(0), joint_values(0));
+    Matrix<double, 4, 4> T10;
+    T10 = rot(0, 0, D(0), joint_values(0));
 
     // second matrix, variable rotation around z and pi/2 rotation around x
-  Matrix<double, 4, 4> T21;
-  T21 = rot(pi / 2, 0, 0, joint_values(1));
+    Matrix<double, 4, 4> T21;
+    T21 = rot(pi / 2, 0, 0, joint_values(1));
 
-  Matrix<double, 4, 4> T32;
-  T32 = rot(0, A(1), 0, joint_values(2));
+    Matrix<double, 4, 4> T32;
+    T32 = rot(0, A(1), 0, joint_values(2));
 
     // fourth matrix
-  Matrix<double, 4, 4> T43;
-  T43 = rot(0, A(2), D(3), joint_values(3));
+    Matrix<double, 4, 4> T43;
+    T43 = rot(0, A(2), D(3), joint_values(3));
 
     // fifth matrix
-  Matrix<double, 4, 4> T54;
-  T54 = rot(pi / 2, 0, D(4), joint_values(4));
+    Matrix<double, 4, 4> T54;
+    T54 = rot(pi / 2, 0, D(4), joint_values(4));
 
     // sixth matrix
-  Matrix<double, 4, 4> T65;
-  T65 = rot(-pi / 2, 0, D(5), joint_values(5));
+    Matrix<double, 4, 4> T65;
+    T65 = rot(-pi / 2, 0, D(5), joint_values(5));
 
-  Vector3d p1, p2, p3, p4, p5, p6;
-  Vector3d z1, z2, z3, z4, z5, z6;
+    Vector3d p1, p2, p3, p4, p5, p6;
+    Vector3d z1, z2, z3, z4, z5, z6;
 
-  p1 << T10(0, 3), T10(1, 3), T10(2, 3);
-  Matrix<double, 4, 4> T20 = T10 * T21;
-  p2 << T20(0, 3), T20(1, 3), T20(2, 3);
-  Matrix<double, 4, 4> T30 = T20 * T32;
-  p3 << T30(0, 3), T30(1, 3), T30(2, 3);
-  Matrix<double, 4, 4> T40 = T30 * T43;
-  p4 << T40(0, 3), T40(1, 3), T40(2, 3);
-  Matrix<double, 4, 4> T50 = T40 * T54;
-  p5 << T50(0, 3), T50(1, 3), T50(2, 3);
-  Matrix<double, 4, 4> T60 = T50 * T65;
-  p6 << T60(0, 3), T60(1, 3), T60(2, 3);
+    p1 << T10(0, 3), T10(1, 3), T10(2, 3);
+    Matrix<double, 4, 4> T20 = T10 * T21;
+    p2 << T20(0, 3), T20(1, 3), T20(2, 3);
+    Matrix<double, 4, 4> T30 = T20 * T32;
+    p3 << T30(0, 3), T30(1, 3), T30(2, 3);
+    Matrix<double, 4, 4> T40 = T30 * T43;
+    p4 << T40(0, 3), T40(1, 3), T40(2, 3);
+    Matrix<double, 4, 4> T50 = T40 * T54;
+    p5 << T50(0, 3), T50(1, 3), T50(2, 3);
+    Matrix<double, 4, 4> T60 = T50 * T65;
+    p6 << T60(0, 3), T60(1, 3), T60(2, 3);
 
-  z1 = T10.col(2).head(3);
-  z2 = T20.col(2).head(3);
-  z6 = T60.col(2).head(3);
-  z3 = T30.col(2).head(3);
-  z4 = T40.col(2).head(3);
-  z5 = T50.col(2).head(3);
+    z1 = T10.col(2).head(3);
+    z2 = T20.col(2).head(3);
+    z6 = T60.col(2).head(3);
+    z3 = T30.col(2).head(3);
+    z4 = T40.col(2).head(3);
+    z5 = T50.col(2).head(3);
 
     // z1 << T10(0, 2), T10(1, 2), T10(2, 2);
     // z2 << T20(0, 2), T20(1, 2), T20(2, 2);
@@ -330,43 +448,43 @@ Matrix<double, 6, 6> jacobian(Matrix<double, 6, 1> joint_values)
     // z5 << T50(0, 2), T50(1, 2), T50(2, 2);
     // z6 << T60(0, 2), T60(1, 2), T60(2, 2);
 
-  Matrix<double, 6, 1> column1;
-  column1 << cross_prod(z1, p6 - p1), z1;
+    Matrix<double, 6, 1> column1;
+    column1 << cross_prod(z1, p6 - p1), z1;
 
-  Matrix<double, 6, 1> column2;
-  column2 << cross_prod(z2, p6 - p2), z2;
+    Matrix<double, 6, 1> column2;
+    column2 << cross_prod(z2, p6 - p2), z2;
 
-  Matrix<double, 6, 1> column3;
-  column3 << cross_prod(z3, p6 - p3), z3;
+    Matrix<double, 6, 1> column3;
+    column3 << cross_prod(z3, p6 - p3), z3;
 
-  Matrix<double, 6, 1> column4;
-  column4 << cross_prod(z4, p6 - p4), z4;
+    Matrix<double, 6, 1> column4;
+    column4 << cross_prod(z4, p6 - p4), z4;
 
-  Matrix<double, 6, 1> column5;
-  column5 << cross_prod(z5, p6 - p5), z5;
+    Matrix<double, 6, 1> column5;
+    column5 << cross_prod(z5, p6 - p5), z5;
 
-  Matrix<double, 6, 1> column6;
-  column6 << cross_prod(z6, p6 - p6), z6;
+    Matrix<double, 6, 1> column6;
+    column6 << cross_prod(z6, p6 - p6), z6;
 
-  Matrix<double, 6, 6> jac;
-  jac << column1,
-  column2,
-  column3,
-  column4,
-  column5,
-  column6;
-  return jac;
-}
+    Matrix<double, 6, 6> jac;
+    jac << column1,
+    column2,
+    column3,
+    column4,
+    column5,
+    column6;
+    return jac;
+  }
 
-Matrix<double, 6, 6> dampedJacobian(Matrix<double, 6, 6> jac, double damping_term)
-{
-  Matrix<double, 6, 6> dampedJac;
-  Matrix<double, 6, 6> damping_matrix;
+  Matrix<double, 6, 6> dampedJacobian(Matrix<double, 6, 6> jac, double damping_term)
+  {
+    Matrix<double, 6, 6> dampedJac;
+    Matrix<double, 6, 6> damping_matrix;
 
-  damping_matrix = Matrix<double, 6, 6>::Identity() * damping_term * damping_term;
-  dampedJac = jac.transpose() * (jac * jac.transpose() + damping_matrix);
-  return dampedJac;
-}
+    damping_matrix = Matrix<double, 6, 6>::Identity() * damping_term * damping_term;
+    dampedJac = jac.transpose() * (jac * jac.transpose() + damping_matrix);
+    return dampedJac;
+  }
 
   Matrix<double, 6, 6> geometric_to_analytical(Matrix<double, 6, 6> jacobian, Vector3d RPY_current) // insert rpy_current as roll, pitch, yaw
   {
@@ -389,6 +507,43 @@ Matrix<double, 6, 6> dampedJacobian(Matrix<double, 6, 6> jac, double damping_ter
 
     jacobian = Ta.inverse() * jacobian;
     return jacobian;
+  }
+
+  vector<Vector3d> get_joints_positions(Matrix<double, 6, 1> joints)
+  {
+    Matrix<double, 4, 4> T10 = rot(0, 0, D[0], joints[0]);
+    Matrix<double, 4, 4> T21 = rot(pi / 2, 0, 0, joints[1]);
+    Matrix<double, 4, 4> T32 = rot(0, A[1], 0, joints[2]);
+    Matrix<double, 4, 4> T43 = rot(0, A[2], D[3], joints[3]);
+    Matrix<double, 4, 4> T54 = rot(pi / 2, 0, D[4], joints[4]);
+    Matrix<double, 4, 4> T65 = rot(-pi / 2, 0, D[5], joints[5]);
+    Vector4d homogeneous_zero;
+    homogeneous_zero << 0, 0, 0, 1;
+
+    vector<Vector3d> res;
+    res.push_back((T10 * homogeneous_zero).head(3));
+    res.push_back((T10 * T21 * homogeneous_zero).head(3));
+    res.push_back((T10 * T21 * T32 * homogeneous_zero).head(3));
+    res.push_back((T10 * T21 * T32 * T43 * homogeneous_zero).head(3));
+    res.push_back((T10 * T21 * T32 * T43 * T54 * homogeneous_zero).head(3));
+    res.push_back((T10 * T21 * T32 * T43 * T54 * T65 * homogeneous_zero).head(3));
+
+    return res;
+  }
+
+  bool check_world_collisions(Vector3d robot_coords) {
+    const double MURO = 0.1;
+    const double BLOCCO = 0.2;
+    const double TAVOLO_ALTO = 1.75;
+    const double TAVOLO_BASSO = 0.87;
+    const double ALTEZZA_MURO = 1;
+    Vector3d world_coords;
+    world_coords = fromUr5ToWorld(robot_coords);
+
+    // collisione contro il muro, contro il blocchetto, contro il tavolo in basso, contro il tavolo in alto
+    if(world_coords(1) < MURO || (world_coords(1) < MURO && world_coords(2) < ALTEZZA_MURO) || world_coords(2) < TAVOLO_BASSO || world_coords(2) > TAVOLO_ALTO) return true;
+
+    return false;
   }
 
 };
