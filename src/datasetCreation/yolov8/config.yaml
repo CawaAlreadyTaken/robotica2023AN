@@ -1,7 +1,7 @@
 # Ultralytics YOLO 🚀, GPL-3.0 license
 
 # Parameters
-nc: 11 # number of classes
+nc: 10 # number of classes
 depth_multiple: 0.33  # scales module repeats
 width_multiple: 0.25  # scales convolution channels
 
