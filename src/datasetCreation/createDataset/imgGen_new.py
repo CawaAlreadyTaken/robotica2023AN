@@ -36,24 +36,29 @@ block_radius = 0.05
 
 # this will be divided by 100
 MIN_X = 5
-MAX_X = 35
+MAX_X = 90
 MIN_Y = 20
 MAX_Y = 75
-H = 95
+H = 93.1
 
 # MIN_X = 5
 # MAX_X = 95
 # MIN_Y = 20
 # MAX_Y = 75
-# H = 87
+TABLE_H = 87
 
 img_msg = None
 
-img_counter = 0
+img_counter = 12678
 
 boxes = {}
 with open("boxes.json", "r") as f:
     boxes = json.loads(f.read())
+
+def find_name(index):
+    for a, b in blocks:
+        if index == b:
+            return a
 
 
 def callback(img_msg_):
@@ -91,19 +96,44 @@ class ObjectSpawner(object):
         if (len(model_states.name) > 0):
             self.gazebo_models = model_states.name
 
+    def getModelName(self,partial_name):
+        for model in self.gazebo_models:
+            if (partial_name == model.split("_")[0]):
+                return model
+
     def screenShot_and_label(self, blocks_info):
         global img_counter
         img = CvBridge().imgmsg_to_cv2(img_msg)
         print("saving image: ", img_counter)
-        cv2.imwrite("./dataset/imgs/" + str(img_counter) + ".jpg", img)
-        with open("./dataset/labels/" + str(img_counter) + ".txt", "w") as f:
+        cv2.imwrite("./dataset_new/imgs/" + str(img_counter) + ".jpg", img)
+        with open("./dataset_new/labels/" + str(img_counter) + ".txt", "w") as f:
             cont = ""
             for block in blocks_info:
+                # block["pos"][2] = TABLE_H/100 + (block["cy"]/2)/1080
+                block["pos"][2] = self.get_model_state(self.getModelName(block["name"]), "").pose.position.z
                 print("real world pos: ", block["pos"])
-                img_pos = self.fromWorldToImage(
-                    np.matrix([[block["pos"][0]], [block["pos"][1]], [block["pos"][2]], [1]]))
-                cont += str(block["index"]) + " " + clear(img_pos[0]/1920) + " " + clear(img_pos[1]/1080) + " " + clear((block["cx"]-block["cx"]
-                                                                                                                         * 0.5389*(902-img_pos[1])/480)/1) + " " + clear((block["cy"]-block["cy"]*0.5389*(902-img_pos[1])/480)/1) + "\n"
+                img_pos = self.fromWorldToImage(np.matrix([[block["pos"][0]], [block["pos"][1]], [block["pos"][2]], [1]]))
+                block_index = block["index"]
+                block_name = find_name(block_index)
+                x_image = img_pos[0]
+                y_image = img_pos[1]
+                cx_default = block["cx"]
+                cy_default = block["cy"]
+                x_box_img = block["cx"]-block["cx"]*0.5389*(902-img_pos[1])/480
+                y_box_img = block["cy"]-block["cy"]*0.5389*(902-img_pos[1])/480
+                print("___________________________DEBUG_________________________")
+                print(f"indice blocco: {block_index}")
+                print(f"nome blocco: {block_name}")
+                print(f"x image: {x_image}")
+                print(f"y image: {y_image}")
+                print(f"cx block a fine tavolo: {cx_default}")
+                print(f"cy block a fine tavolo: {cy_default}")
+                print()
+                print(f"x box immagine: {x_box_img}")
+                print(f"y box immagine: {y_box_img}")
+                print("_________________________END__DEBUG______________________")
+                if (x_box_img < 250):
+                    cont += str(block_index) + " " + clear(x_image/1920) + " " + clear(y_image/1080) + " " + clear(x_box_img/1920) + " " + clear(y_box_img/1080) + "\n"
             f.write(cont)
 
     def randPos(self):
@@ -129,7 +159,7 @@ class ObjectSpawner(object):
                         <uri>model://%MODEL_NAME%</uri>
                         <static>%STATIC%</static>
                         </include>
-                    </world>
+                False    </world>
                     </sdf>"""
             model_xml = model_database_template \
                 .replace('%MODEL_NAME%', block["name"]) \
@@ -185,6 +215,23 @@ class ObjectSpawner(object):
         #model_state.is_static = True
         self.set_model_state(model_state)
 
+# Probability of intersection, given threshold T, and N blocks already there:
+# (N * PI * (T*100)^2)/4675
+# So, for threshold 0.07
+# N = 0:  0.00 %
+# N = 1:  3.29 %
+# N = 2:  6.58 %
+# N = 3:  9.88 %
+# N = 4: 13.17 %
+def intersects(pos, blocks):
+    threshold = 0.07
+    posX = pos[0]
+    posY = pos[1]
+    for block in blocks:
+        if pow(block.pos[0]-posX, 2)+pow(block.pos[1]-posY, 2) < pow(threshold, 2):
+            return True
+    return False
+
 
 spawner = ObjectSpawner()
 spawner.__init__()
@@ -223,7 +270,7 @@ rospy.wait_for_service("/gazebo/get_model_state")
 #     for i in range(n_blocks):
 #         angle_index = int(used_blocks[i][1]/11)
 #         name = used_blocks[i][0].split("_")[0]
-#         blocks_info.append({
+#         blocks_i1684255584.697946nfo.append({
 #             "name": name,
 #             "index": used_blocks[i][1],
 #             "cx": boxes[name][angle_index]["size"][0],
@@ -239,36 +286,44 @@ rospy.wait_for_service("/gazebo/get_model_state")
 #     input("Press Enter to continue...")
 #     spawner.delete(blocks_info)
 
-block_n = 8
-
 vertical_orient = [-pi/2, 0, pi]
+
+n_blocks = 5
+
+spawner.cleanModels()
 
 while (True):
     used_blocks = blocks
+    shuffle(used_blocks)
     blocks_info = []
-    name = used_blocks[block_n][0]
-    angle_val = random.randint(0,359)
-    sizes = boxes[name][int(((angle_val+45/2)%360)/45)]["size"]
-    block_v_orient = random.choice(vertical_orient)
-    if(block_v_orient == -pi/2):
-        sizes = boxes[name][2]["size"]
-        sizes[0] += 35
-    blocks_info.append({
-        "name": name,
-        "index": used_blocks[block_n][1],
-        "cx": sizes[0],
-        "cy": sizes[1],
-        "pos": spawner.randPos(),
-        #"orient": [random.randint(1,4) * pi/2, 0, angle_val * 2 * pi / 360],
-        "orient": [block_v_orient, 0, angle_val * 2 * pi / 360],
-    })
-    block_n += 1
-    block_n = block_n % len(blocks)
+    for i in range(n_blocks):
+        name = used_blocks[i][0]
+        angle_val = random.randint(0,359)
+        angle_index = int(((angle_val+45/2)%360)/45)
+        sizes = boxes[name][angle_index]["size"]
+        if("CHAMFER" in name or "FILLET" in name):
+            block_v_orient = random.choice(vertical_orient[:-1])
+        else:
+            block_v_orient = random.choice(vertical_orient)
+        if(block_v_orient == -pi/2):
+            sizes = boxes[name][2]["size"].copy()
+            sizes[0] += 35
+        position = spawner.randPos()
+        if intersects(position, blocks_info):
+            continue
+        blocks_info.append({
+            "name": name,
+            "index": used_blocks[i][1],
+            "cx": sizes[0],
+            "cy": sizes[1],
+            "pos": spawner.randPos(),
+            #"orient": [random.randint(1,4) * pi/2, 0, angle_val * 2 * pi / 360],
+            "orient": [block_v_orient, 0, angle_val * 2 * pi / 360],
+        })
     spawner.spawn(blocks_info, static=False)
-    time.sleep(1)
+    time.sleep(2)
     spawner.screenShot_and_label(blocks_info)
-    print(sizes)
-    input("Press Enter to continue...")
+    img_counter += 1
     spawner.delete(blocks_info)
 
 # spawner.spawn([{
