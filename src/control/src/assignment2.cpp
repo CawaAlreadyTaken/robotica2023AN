@@ -118,17 +118,23 @@ void move_to(Vector3d pf, Vector3d rpy, double gripper = 0, double k=0.1, double
   loop_time = 0;
 
   ee_pos = diffKin.getEECoords();
-  cout << "final position:" << endl << ee_pos << endl;
+  cout << "[*] Moved to:" << endl << ee_pos << endl;
 }
 
 
 void move_collision_detection(Vector3d start_rcoords, Matrix<double, 6, 1> joints, Vector3d end_rcoords, double gripper = 0, double k = 0.1, double k_rpy = 0.1) {
   // get Nodes from pi and pf
-  Vector3d pi_wcoords = diffKin.fromUr5ToWorld(start_rcoords);
+  Vector3d pi_wcoords = diffKin.fromUr5ToWorld(start_rcoords); cout << "pi_wcoords: " << pi_wcoords << endl;
   Vector3d pf_wcoords = diffKin.fromUr5ToWorld(end_rcoords);
+
+  cout << "pf_wcoords: " << endl << pf_wcoords << endl;
+  cout << "pi_wcoords: " << endl << pi_wcoords << endl;
 
   Node start = get_closest_node(pi_wcoords);
   Node end = get_closest_node(pf_wcoords);
+
+  cout << "start: " << start.first << " " << start.second << endl;
+  cout << "end: " << end.first << " " << end.second << endl;
 
   // init A* algorithm
   Envmap gscores(DIM, vector<double>(DIM, INFINITY));
@@ -136,17 +142,17 @@ void move_collision_detection(Vector3d start_rcoords, Matrix<double, 6, 1> joint
   Envmap fscores(DIM, vector<double>(DIM, INFINITY));
   Fathers fathers(DIM, vector<Node>(DIM)); 
   Jointmap jointmap(DIM, vector<Matrix<double, 6, 1>>(DIM));
-
-  jointmap[int(start.first * SCALE)][int(start.second * SCALE)] = joints;
+  
+  jointmap[start.first][start.second] = joints;
+ 
   init(start, end, gscores, hscores, fscores, fathers);
-
   Path path = a_star(start, end, gscores, hscores, fscores, fathers, jointmap, manhattan_distance, close_to_collisions);
   Path points = get_lines(path);
 
   // for each point, convert into robots coordinates and move robot
 
   for(int i = 1; i < points.size(); ++i) {
-    Vector3d dest = diffKin.fromWorldToUr5(Vector3d(points[i].first, points[i].second, SET_HEIGHT));
+    Vector3d dest = diffKin.fromWorldToUr5(Vector3d((double)points[i].first / 10, (double)points[i].second / 10, SET_HEIGHT));
     move_to(dest, Vector3d(0, 0, pi));
   }
 
@@ -229,7 +235,7 @@ int main(int argc, char** argv) {
 
   Vector3d start_rcoords(0.2, -0.4, 0.58);
   Matrix<double, 6, 1> homing_joints = diffKin.getCurrentPosition();
-  Vector3d end_rcoords(0.2, -0.2, 0.58);
+  Vector3d end_rcoords(-0.4, 0.25, 0.58);
   move_collision_detection(start_rcoords, homing_joints, end_rcoords);
 
   // while (ros::ok()) {

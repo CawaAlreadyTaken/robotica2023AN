@@ -105,8 +105,8 @@ vector<Node> neighbors(Node current) {
 	int j[8] = {1, 0, -1, 1, -1, 1, 0, -1};
 	vector<Node> res;
 
-	for(int k = 0; k < DIM; k++) {
-		if(current.first + i[k] > DIM || current.first + i[k] < 0 || current.second + j[k] > DIM || current.second + j[k] < 0) continue;
+	for(int k = 0; k < 8; k++) {
+		if(current.first + i[k] >= DIM || current.first + i[k] < 0 || current.second + j[k] >= DIM || current.second + j[k] < 0) continue;
 		res.push_back({current.first + i[k], current.second + j[k]});
 	}
 
@@ -196,6 +196,7 @@ Node get_min_fscore(set<Node> set, Envmap fscores) {
 }
 
 Path a_star(Node start, Node end, Envmap& gscores, Envmap& hscores, Envmap& fscores, Fathers& fathers, Jointmap& jointmap, double(*heuristics)(Node, Node), double(*collisions)(Node, Node, Matrix<double, 6, 1>)) {
+	cout << "[*] Starting A-star" << endl;
 	set<Node> open_set;
 	Node current;
 	int counter;
@@ -203,12 +204,14 @@ Path a_star(Node start, Node end, Envmap& gscores, Envmap& hscores, Envmap& fsco
 	open_set.insert(start);
 
 	while(!open_set.empty()) {
+		cout << open_set.size() << endl;
 		current = get_min_fscore(open_set, fscores);
-
 		open_set.erase(current);
 
-		if(current == end)
+		if(current == end) {
+			cout << "[*] A-star found a path" << endl;
 			return reconstruct_path(end, start, fathers);	
+		}
 
 		for(auto n: neighbors(current)) {
 			double tentative_score = gscores[current.first][current.second] + heuristics(current, end) + collisions(current, n, jointmap[current.first][current.second]);
@@ -222,6 +225,7 @@ Path a_star(Node start, Node end, Envmap& gscores, Envmap& hscores, Envmap& fsco
 		}
 	}
 
+	cout << "[*] A-star did not find a path" << endl;
 	return {{-1, -1}};
 }
 
@@ -241,5 +245,5 @@ void init(Node start, Node end, Envmap& gscores, Envmap& hscores, Envmap& fscore
 }
 
 Node get_closest_node(Vector3d wcoords) {
-	return Node(round(wcoords[0] * 10) / 10, round(wcoords[1] * 10) / 10);
+	return Node((double)round(wcoords[0] * 10), (double)round(wcoords[1] * 10));
 }

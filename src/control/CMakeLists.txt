@@ -10,7 +10,7 @@ find_package(vision REQUIRED)
 find_package(Eigen3 3.3 REQUIRED)
 
 # ## Declare a catkin package
-# catkin_package(INCLUDE_DIRS include LIBRARIES path_finding)
+catkin_package()
 
 
 ## Build talker and listener
