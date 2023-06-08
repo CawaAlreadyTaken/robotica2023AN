@@ -25,9 +25,9 @@ function stopCommand() {
 trap 'stopCommand' SIGINT
 
 case "$1" in
-    "ass1") $UR5_COMMAND  2>/dev/null & rosrun control assignment1 >/dev/null & $VISIONNODE_COMMAND >/dev/null 2>&1 &
+    "ass1") $UR5_COMMAND  2>/dev/null & rosrun control assignment1 >/dev/null & $VISIONNODE_COMMAND >/dev/null 2>&1
     ;;
-    "ass2") $UR5_COMMAND >/dev/null 2>/dev/null & rosrun control assignment2  & $VISIONNODE_COMMAND >/dev/null 2>&1 &
+    "ass2") $UR5_COMMAND >/dev/null 2>/dev/null & rosrun control assignment2  & $VISIONNODE_COMMAND >/dev/null 2>&1
     ;;
     "ass3") $UR5_COMMAND >/dev/null 2>/dev/null & rosrun control assigmnent3 >/dev/null & $VISIONNODE_COMMAND
     ;;

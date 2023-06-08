@@ -1,4 +1,11 @@
 #include "path_finding.h"
+#include "differentialKin.cpp"
+
+#define DIM 10
+#define SET_HEIGHT 1.174
+#define INCREMENT 0.1
+#define SCALE 10
+#define HIGH_COST 100
 
 bool operator == (const Node& u, const Node& v) {
 	return u.first == v.first && u.second == v.second;
@@ -31,26 +38,18 @@ Vector3d linear_interpol(Vector3d pi, Vector3d pf, double t)
 }
 
 Vector3d trapezoidal_velocity(Vector3d pi, Vector3d pf, double t) {
-	Vector3d acc = (pf - pi) * 16 / 3;
-	Vector3d vel = acc/4;
+  Vector3d acc = (pf - pi) * 16 / 3;
+  Vector3d vel = acc/4;
 
-	if(t >= 1) {
-		return Vector3d(0, 0, 0);
-	}
-
-	if(t <= 0.25) {
-		return acc * t;
-	}
-
-	if(t > 0.25 && t <= 0.75) {
-		return vel;
-	}
-
-	if(t > 0.75 && t < 1) {
-		return vel - acc * (t - 0.75);
-	}
-
-	return Vector3d::Zero();
+  if(t >= 1) {
+    return Vector3d(0, 0, 0);
+  } else if(t <= 0.25) {
+    return acc * t;
+  } else if(t > 0.25 && t <= 0.75) {
+    return vel;
+  } else {
+    return vel - acc * (t - 0.75);
+  }
 }
 
 Vector3d linear_velocity(Vector3d pi, Vector3d pf) {
@@ -58,6 +57,8 @@ Vector3d linear_velocity(Vector3d pi, Vector3d pf) {
 }
 
 Matrix<double, 6, 1> get_joints(Node start, Node end, Jointmap& jointmap, double gripper = 0, double k=0.1, double k_rpy=0.1) {
+
+	DifferentialKinematic diffKinPF = DifferentialKinematic();
 
 	Matrix<double, 6, 1> q0;
 	Vector3d v;
@@ -77,7 +78,8 @@ Matrix<double, 6, 1> get_joints(Node start, Node end, Jointmap& jointmap, double
 	// cout << "start wcoords: " << start.first << ", " << start.second << endl;
 	// cout << "start jcoords" << endl << jointmap[start.first][start.second] << endl << endl;
 
-	double Dt = (double)1 / (loop_frequency * TIME_FOR_MOVING);
+	//double Dt = (double)1 / (loop_frequency * TIME_FOR_MOVING);
+	double Dt = (double)1 / (1000);
 	double t = Dt;
 	while(t<=1) {
 		q0 += diffKinPF.Qdot(q0, linear_interpol(start_rcoords, end_rcoords, t), trapezoidal_velocity(start_rcoords, end_rcoords, t), Vector3d(0, 0, pi), Vector3d::Zero(), K, K_rpy) * Dt;
@@ -91,6 +93,8 @@ Matrix<double, 6, 1> get_joints(Node start, Node end, Jointmap& jointmap, double
 }
 
 double close_to_collisions(Node u, Node v, Matrix<double, 6, 1> joints) {
+	DifferentialKinematic diffKinPF = DifferentialKinematic();
+
 	Vector3d u_vector((double)u.first/SCALE, (double)u.second/SCALE, SET_HEIGHT);
 	Vector3d v_vector((double)v.first/SCALE, (double)v.second/SCALE, SET_HEIGHT);
 	return diffKinPF.close_to_collisions(u_vector, v_vector, joints);

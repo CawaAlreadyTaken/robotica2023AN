@@ -9,8 +9,14 @@
 
 #include "inverseKin.cpp"
 #include "differentialKin.cpp"
+#include <path_finding.h>
 
-const double pi = 2 * acos(0.0);
+#define DIM 10
+#define SET_HEIGHT 1.174
+#define INCREMENT 0.1
+#define SCALE 10
+#define HIGH_COST 100
+
 ros::Subscriber sub;
 
 InverseKinematic invKin;
@@ -58,31 +64,6 @@ void homing_procedure() {
 
   loop_time = 0;
   diffKin.setRobotsPosition(q_des_filtered.head(6)); // actual position
-}
-
-Vector3d linear_interpol(Vector3d pi, Vector3d pf, double t) {
-  return t * (pf) + (1 - t) * pi;
-}
-
-Vector3d trapezoidal_velocity(Vector3d pi, Vector3d pf, double t) {
-  Vector3d acc = (pf - pi) * 16 / 3;
-  Vector3d vel = acc/4;
-
-  if(t >= 1) {
-    return Vector3d(0, 0, 0);
-  }
-
-  if(t <= 0.25) {
-    return acc * t;
-  }
-
-  if(t > 0.25 && t <= 0.75) {
-    return vel;
-  }
-
-  if(t > 0.75 && t < 1) {
-    return vel - acc * (t - 0.75);
-  }
 }
 
 void move_to(Vector3d pf, Vector3d rpy, double gripper = 0, double k=0.1, double k_rpy=0.1) {
@@ -139,6 +120,38 @@ void move_to(Vector3d pf, Vector3d rpy, double gripper = 0, double k=0.1, double
   ee_pos = diffKin.getEECoords();
   cout << "final position:" << endl << ee_pos << endl;
 }
+
+
+void move_collision_detection(Vector3d start_rcoords, Matrix<double, 6, 1> joints, Vector3d end_rcoords, double gripper = 0, double k = 0.1, double k_rpy = 0.1) {
+  // get Nodes from pi and pf
+  Vector3d pi_wcoords = diffKin.fromUr5ToWorld(start_rcoords);
+  Vector3d pf_wcoords = diffKin.fromUr5ToWorld(end_rcoords);
+
+  Node start = get_closest_node(pi_wcoords);
+  Node end = get_closest_node(pf_wcoords);
+
+  // init A* algorithm
+  Envmap gscores(DIM, vector<double>(DIM, INFINITY));
+  Envmap hscores(DIM, vector<double>(DIM, INFINITY)); 
+  Envmap fscores(DIM, vector<double>(DIM, INFINITY));
+  Fathers fathers(DIM, vector<Node>(DIM)); 
+  Jointmap jointmap(DIM, vector<Matrix<double, 6, 1>>(DIM));
+
+  jointmap[int(start.first * SCALE)][int(start.second * SCALE)] = joints;
+  init(start, end, gscores, hscores, fscores, fathers);
+
+  Path path = a_star(start, end, gscores, hscores, fscores, fathers, jointmap, manhattan_distance, close_to_collisions);
+  Path points = get_lines(path);
+
+  // for each point, convert into robots coordinates and move robot
+
+  for(int i = 1; i < points.size(); ++i) {
+    Vector3d dest = diffKin.fromWorldToUr5(Vector3d(points[i].first, points[i].second, SET_HEIGHT));
+    move_to(dest, Vector3d(0, 0, pi));
+  }
+
+}
+
 
 void pick_and_place(Vector3d pick, Vector3d place, double rotation) {
 
@@ -214,10 +227,14 @@ int main(int argc, char** argv) {
   std::cout << "reached home" << std::endl;
   std::cout << "Waiting for vision message..." << std::endl;
 
+  Vector3d start_rcoords(0.2, -0.4, 0.58);
+  Matrix<double, 6, 1> homing_joints = diffKin.getCurrentPosition();
+  Vector3d end_rcoords(0.2, -0.2, 0.58);
+  move_collision_detection(start_rcoords, homing_joints, end_rcoords);
 
-  while (ros::ok()) {
-    ros::spinOnce();
-  };
+  // while (ros::ok()) {
+  //   ros::spinOnce();
+  // };
 
   return 0;
 }

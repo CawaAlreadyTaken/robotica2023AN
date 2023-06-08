@@ -6,7 +6,6 @@
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 #include <Eigen/Eigenvalues>
-#include <custom_joint_publisher.h>
 
 using namespace std;
 using namespace Eigen;

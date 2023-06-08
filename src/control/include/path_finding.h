@@ -8,21 +8,11 @@
 #include <unistd.h>
 #include <cmath>
 
-DifferentialKinematic diffKinPF;
-
 using namespace std;
 using namespace Eigen;
-double pi;
-
-#define DIM 10
-
-#define SET_HEIGHT 1.174
-#define INCREMENT 0.1
-#define SCALE 10
-#define HIGH_COST 100
-
 
 using namespace std;
+const double pi = 3.1415926;
 
 typedef vector<vector<double>> Envmap;
 typedef vector<pair<int, int>> Path;

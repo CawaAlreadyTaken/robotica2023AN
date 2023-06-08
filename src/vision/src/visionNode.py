@@ -117,17 +117,17 @@ class VisionNode():
             confs = ris[0].boxes.conf.numpy()
             boxes = self.filterBoxes(boxes)
             # Iterate over each found block
-            # if (len(boxes) > 0):
-            for i in range (len(boxes)):
-                arr = boxes[i]
+            if (len(boxes) > 0):
+            #for i in range (len(boxes)):
+                arr = boxes[0]
                 cx = arr[0]+(arr[2]-arr[0])/2
                 cy = arr[1]+(arr[3]-arr[1])/2
                 cropped_image = img[int(arr[1]):int(arr[3]), int(arr[0]):int(arr[2]), 0:3]
                 imwrite(f"{self.HOME_DIR}cropped.jpg", cropped_image)
                 orientamento = self.getOrientation() # 0 basso, 1 laterale, 2 alto 
                 # TODO: parsa meglio (coi gradi) e usa orientamento
-                cls = int(clss[i])
-                conf = confs[i]
+                cls = int(clss[0])
+                conf = confs[0]
                 realWorldCoords = self.fromImageToWorld([cx, cy])
                 realWorldCoords.append(self.TAVOLO_HEIGHT)
                 rwCoordsParsed = [float(j) for j in realWorldCoords]
@@ -139,7 +139,7 @@ class VisionNode():
                 data.z = rwCoordsParsed[2]
                 data.orient = orientamento
                 data.index = cls
-                #self.publisher.publish(data)
+                self.publisher.publish(data)
                 print(data)
             else:
                 print("No blocks found")
