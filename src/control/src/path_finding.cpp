@@ -132,6 +132,7 @@ Path reconstruct_path(Node end, Node start, Fathers fathers) {
 }
 
 vector<Node> get_lines(Path path) {
+	cout << "path contains :" << path.size() << endl; fflush(stdout);
     vector<Node> res;
     res.push_back(path[0]);
 
@@ -202,6 +203,13 @@ Node get_min_fscore(set<Node> set, Envmap fscores) {
 
 Path a_star(Node start, Node end, Envmap& gscores, Envmap& hscores, Envmap& fscores, Fathers& fathers, Jointmap& jointmap, double(*heuristics)(Node, Node), double(*collisions)(Node, Node, Matrix<double, 6, 1>)) {
 	cout << "[*] Starting A-star" << endl;
+	cout << "[*] start node: " << start.first << ", " << start.second << endl;
+	cout << "[*] end node: " << end.first << ", " << end.second << endl;
+	if(start == end) {
+		cout << "[*] start node and end node are the same" << endl;
+		return {{-1, -1}};
+	}
+
 	set<Node> open_set;
 	Node current;
 	int counter;
@@ -212,7 +220,12 @@ Path a_star(Node start, Node end, Envmap& gscores, Envmap& hscores, Envmap& fsco
 
 		if(current == end) {
 			cout << "[*] A-star found a path" << endl;
-			return reconstruct_path(end, start, fathers);	
+			auto res = reconstruct_path(end, start, fathers);
+			// problem: res is empty
+			for(auto &[a, b] : res) {
+				cout << a << ", " << b << endl;
+			}	
+			return res;
 		}
 		auto nb = neighbors(current);
 		//cout << "neighbors number: " << nb.size() << endl;
