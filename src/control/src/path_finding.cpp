@@ -6,6 +6,11 @@
 #define INCREMENT 0.1
 #define SCALE 10
 #define HIGH_COST 100
+#include <chrono>
+
+using std::chrono::high_resolution_clock;
+using std::chrono::duration_cast;
+using std::chrono::milliseconds;
 
 bool operator == (const Node& u, const Node& v) {
 	return u.first == v.first && u.second == v.second;
@@ -79,7 +84,7 @@ Matrix<double, 6, 1> get_joints(Node start, Node end, Jointmap& jointmap, double
 	// cout << "start jcoords" << endl << jointmap[start.first][start.second] << endl << endl;
 
 	//double Dt = (double)1 / (loop_frequency * TIME_FOR_MOVING);
-	double Dt = (double)1 / (1000);
+	double Dt = (double)1 / (10);
 	double t = Dt;
 	while(t<=1) {
 		q0 += diffKinPF.Qdot(q0, linear_interpol(start_rcoords, end_rcoords, t), trapezoidal_velocity(start_rcoords, end_rcoords, t), Vector3d(0, 0, pi), Vector3d::Zero(), K, K_rpy) * Dt;
@@ -200,11 +205,8 @@ Path a_star(Node start, Node end, Envmap& gscores, Envmap& hscores, Envmap& fsco
 	set<Node> open_set;
 	Node current;
 	int counter;
-
 	open_set.insert(start);
-
 	while(!open_set.empty()) {
-		cout << open_set.size() << endl;
 		current = get_min_fscore(open_set, fscores);
 		open_set.erase(current);
 
@@ -212,8 +214,9 @@ Path a_star(Node start, Node end, Envmap& gscores, Envmap& hscores, Envmap& fsco
 			cout << "[*] A-star found a path" << endl;
 			return reconstruct_path(end, start, fathers);	
 		}
-
-		for(auto n: neighbors(current)) {
+		auto nb = neighbors(current);
+		//cout << "neighbors number: " << nb.size() << endl;
+		for(auto n: nb) {
 			double tentative_score = gscores[current.first][current.second] + heuristics(current, end) + collisions(current, n, jointmap[current.first][current.second]);
 			if(tentative_score < gscores[n.first][n.second]) {
 				gscores[n.first][n.second] = tentative_score;

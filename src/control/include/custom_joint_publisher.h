@@ -38,14 +38,13 @@ Eigen::Vector3d FINAL_POSITIONS[] = {
     Eigen::Vector3d(0.65, 0.55, 1),
     Eigen::Vector3d(0.65, 0.4, 1),
     Eigen::Vector3d(0.8, 0.7, 1),
-    Eigen::Vector3d(0.65, 0.25, 1),
     Eigen::Vector3d(0.8, 0.55, 1),
     Eigen::Vector3d(0.8, 0.25, 1),
     Eigen::Vector3d(0.8, 0.4, 1),
     Eigen::Vector3d(0.95, 0.7, 1),
     Eigen::Vector3d(0.95, 0.55, 1),
     Eigen::Vector3d(0.95, 0.25, 1),
-    Eigen::Vector3d(0.95, 0.4, 1),
+    Eigen::Vector3d(0.95, 0.4, 1)
 };
 
 Eigen::Vector3d FINAL_POSITIONS_ASS4[] = {
