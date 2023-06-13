@@ -181,6 +181,26 @@ JointStateVector secondOrderFilter(const JointStateVector& input,
   return filter_2;
 }
 
+void go_corner() {
+  Vector3d dest(0.2, -0.4, 0.58);
+  ros::Rate loop_rate(loop_frequency);
+  Vector3d m(0, 0, pi);
+  JointStateVector q_des;
+  JointStateVector q_des_filtered;
+  invKin.setDestinationPoint(dest,m,0);
+  invKin.getJointsPositions(q_des);
+  while (loop_time < TIME_FOR_MOVING) {
+    q_des_filtered = secondOrderFilter(q_des, loop_frequency, TIME_FOR_MOVING);
+    send_des_jstate(q_des_filtered);
+    loop_time += (double)1 / loop_frequency;
+    ros::spinOnce();
+    loop_rate.sleep();
+  }
+
+  loop_time = 0;
+  diffKin.setRobotsPosition(q_des_filtered.head(6)); // actual position
+}
+
 void homing_procedure() {
   Vector3d dest(0.2, -0.4, 0.58);
   ros::Rate loop_rate(loop_frequency);
@@ -222,9 +242,9 @@ int main(int argc, char** argv) {
   jointState_msg_sim.effort.resize(9);
   jointState_msg_robot.data.resize(9);
 
-  // JointStateVector q_des_init;
-  // q_des_init << 0, 0, 0, 0, 0, 0, 0, 0, 0;
-  // initFilter(q_des_init);
+  JointStateVector q_des_init;
+  q_des_init << -0.32,-0.78, -2.56,-1.63, -1.57,  3.49, 0, 0, 0;
+  initFilter(q_des_init);
 
   homing_procedure();
   cout << "reached home" << endl;

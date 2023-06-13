@@ -1,16 +1,11 @@
 #include "path_finding.h"
 #include "differentialKin.cpp"
 
-#define DIM 10
+#define DIM 20
 #define SET_HEIGHT 1.174
 #define INCREMENT 0.1
-#define SCALE 10
-#define HIGH_COST 100
-#include <chrono>
-
-using std::chrono::high_resolution_clock;
-using std::chrono::duration_cast;
-using std::chrono::milliseconds;
+#define SCALE 20
+#define HIGH_COST 100000
 
 bool operator == (const Node& u, const Node& v) {
 	return u.first == v.first && u.second == v.second;
@@ -79,12 +74,14 @@ Matrix<double, 6, 1> get_joints(Node start, Node end, Jointmap& jointmap, double
 	start_rcoords = diffKinPF.fromWorldToUr5(start_rcoords);
 	end_rcoords = diffKinPF.fromWorldToUr5(end_rcoords);
 
+	double nsamples = 2;
+
 	//debugging
 	// cout << "start wcoords: " << start.first << ", " << start.second << endl;
 	// cout << "start jcoords" << endl << jointmap[start.first][start.second] << endl << endl;
 
 	//double Dt = (double)1 / (loop_frequency * TIME_FOR_MOVING);
-	double Dt = (double)1 / (10);
+	double Dt = (double)1 / (nsamples);
 	double t = Dt;
 	while(t<=1) {
 		q0 += diffKinPF.Qdot(q0, linear_interpol(start_rcoords, end_rcoords, t), trapezoidal_velocity(start_rcoords, end_rcoords, t), Vector3d(0, 0, pi), Vector3d::Zero(), K, K_rpy) * Dt;
@@ -143,25 +140,7 @@ vector<Node> get_lines(Path path) {
     else if (path[0].second == path[1].second) direction = HORIZONTAL;
     else direction = OBLIQUE;
 
-    for (int i = 2; i < path.size(); i++) {
-
-        if(i == path.size()-1) {   
-            if(path[i].first == path[i-1].first && direction != VERTICAL) {
-                res.push_back(path[i-1]);
-                res.push_back(path[i]);
-            }
-
-            if(path[i].second == path[i-1].second && direction != HORIZONTAL){
-              res.push_back(path[i-1]);
-              res.push_back(path[i]);  
-            } 
-
-            if(manhattan_distance(path[i], path[i-1]) > 1 && direction != OBLIQUE) {
-                res.push_back(path[i-1]);
-                res.push_back(path[i]);
-            }
-            break;
-        }
+    for (int i = 2; i < path.size()-1; i++) {
 
         if(path[i].first == path[i-1].first && direction != VERTICAL){
             direction = VERTICAL;
@@ -177,12 +156,9 @@ vector<Node> get_lines(Path path) {
             direction = OBLIQUE;
             res.push_back(path[i-1]);
         }
-
-
-        // does not handle last element of path correctly
     }
 
-    if(res[res.size()-1] == res[0]) res.push_back(path[path.size() - 1]);
+	res.push_back(path[path.size() - 1]);
     return res;
 }
 
@@ -201,7 +177,7 @@ Node get_min_fscore(set<Node> set, Envmap fscores) {
 }
 
 Path a_star(Node start, Node end, Envmap& gscores, Envmap& hscores, Envmap& fscores, Fathers& fathers, Jointmap& jointmap, double(*heuristics)(Node, Node), double(*collisions)(Node, Node, Matrix<double, 6, 1>)) {
-	cout << "[*] Starting A-star" << endl;
+	cout << "[*] A-star started" << endl << "start: " << start.first << ", " << start.second << endl << "end: " << end.first << ", " << end.second << endl << endl;
 	set<Node> open_set;
 	Node current;
 	int counter;
@@ -248,5 +224,5 @@ void init(Node start, Node end, Envmap& gscores, Envmap& hscores, Envmap& fscore
 }
 
 Node get_closest_node(Vector3d wcoords) {
-	return Node((double)round(wcoords[0] * 10), (double)round(wcoords[1] * 10));
+	return Node((double)round(wcoords[0] * SCALE), (double)round(wcoords[1] * SCALE));
 }

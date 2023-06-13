@@ -106,7 +106,8 @@ class VisionNode():
 
     def getAndSend3dCoords(self):
         while(True):
-            input("Press Enter to continue...")
+            #input("Press Enter to continue...")
+            sleep(1)
             if(self.image is None):
                 continue
             img = CvBridge().imgmsg_to_cv2(self.image)

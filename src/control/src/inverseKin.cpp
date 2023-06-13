@@ -201,7 +201,8 @@ class InverseKinematic
   void getJointsPositions(Eigen::Matrix<double, 9, 1> &q_des0)
   {
     Matrix<double, 8, 6> result = inverse_kin(point, R);
-    int choice = scelta(current_position, result);
+    int choice = 7;
+    //int choice = scelta(current_position, result);
     q_des0 << result(choice, 0), result(choice, 1), result(choice, 2), result(choice, 3), result(choice, 4), result(choice, 5), _gripper, _gripper, _gripper;
     this->current_position = q_des0.head(6);
   }

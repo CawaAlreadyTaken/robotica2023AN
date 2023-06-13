@@ -286,6 +286,7 @@ rospy.wait_for_service("/gazebo/get_model_state")
 #     input("Press Enter to continue...")
 #     spawner.delete(blocks_info)
 
+#[-1.57079632679, 0, 3.14159265359]
 vertical_orient = [-pi/2, 0, pi]
 
 n_blocks = 5

@@ -26,12 +26,13 @@ JointStateVector filter_2 = JointStateVector::Zero();
 double loop_time = 0.;
 double loop_frequency = 1000.;
 double TIME_FOR_MOVING = 1.;
-double TIME_FOR_LOWERING_RISING = 3.;
+double TIME_FOR_LOWERING_RISING = 2.;
 double TIME_FOR_CLOSING_OPENING = 1.;
 float OPEN_GRIP = 0;
 float CLOSE_GRIP = 2.5;
 float UP_HEIGHT = 0.55;
-float DOWN_HEIGHT = 0.70;
+float LITTLE_DOWN_HEIGHT = 0.67;
+float SUPER_DOWN_HEIGHT = 0.702;
 int NUMBER_OF_CLASSES = 11;
 
 Eigen::Vector3d FINAL_POSITIONS[] = {
