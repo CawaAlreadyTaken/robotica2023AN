@@ -67,7 +67,7 @@ void homing_procedure() {
   cout << "[*] Reached home" << endl;
 }
 
-void move_to(Vector3d pf, Vector3d rpy, double gripper = 0, double k=0.1, double k_rpy=0.1) {
+Matrix<double, 6, 1> move_to(Vector3d pf, Vector3d rpy, double gripper = 0, double k=0.1, double k_rpy=0.1) {
   ros::Rate loop_rate(loop_frequency);
 
   Vector3d ee_pos = diffKin.getEECoords();
@@ -191,6 +191,7 @@ void pick_and_place(Vector3d pick, Vector3d place) {
   move_to(place, rpy);
 }
 
+
 void visionCallback(const vision::custMsg::ConstPtr& msg) {
   if(is_moving) return;
   is_moving = true;
@@ -227,7 +228,6 @@ int main(int argc, char** argv) {
   jointState_msg_sim.velocity.resize(9);
   jointState_msg_sim.effort.resize(9);
   jointState_msg_robot.data.resize(9);
-
   
   JointStateVector q_des_init;
   q_des_init << -0.32, -0.78, -2.56, -1.63, -1.57,  3.49, 0, 0, 0;

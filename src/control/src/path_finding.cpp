@@ -129,6 +129,7 @@ Path reconstruct_path(Node end, Node start, Fathers fathers) {
 }
 
 vector<Node> get_lines(Path path) {
+	cout << "path contains :" << path.size() << endl; fflush(stdout);
     vector<Node> res;
     res.push_back(path[0]);
 
@@ -188,7 +189,12 @@ Path a_star(Node start, Node end, Envmap& gscores, Envmap& hscores, Envmap& fsco
 
 		if(current == end) {
 			cout << "[*] A-star found a path" << endl;
-			return reconstruct_path(end, start, fathers);	
+			auto res = reconstruct_path(end, start, fathers);
+			// problem: res is empty
+			for(auto &[a, b] : res) {
+				cout << a << ", " << b << endl;
+			}	
+			return res;
 		}
 		auto nb = neighbors(current);
 		//cout << "neighbors number: " << nb.size() << endl;
