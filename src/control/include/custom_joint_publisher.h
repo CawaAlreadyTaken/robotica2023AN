@@ -31,7 +31,7 @@ double TIME_FOR_CLOSING_OPENING = 1.;
 float OPEN_GRIP = 0;
 float CLOSE_GRIP = 2.5;
 float UP_HEIGHT = 0.55;
-float LITTLE_DOWN_HEIGHT = 0.67;
+float LITTLE_DOWN_HEIGHT = 0.68;
 float SUPER_DOWN_HEIGHT = 0.702;
 int NUMBER_OF_CLASSES = 11;
 
@@ -45,7 +45,7 @@ Eigen::Vector3d FINAL_POSITIONS[] = {
     Eigen::Vector3d(0.95, 0.7, 1),
     Eigen::Vector3d(0.95, 0.55, 1),
     Eigen::Vector3d(0.95, 0.25, 1),
-    Eigen::Vector3d(0.95, 0.4, 1)
+    Eigen::Vector3d(0.94, 0.4, 1)
 };
 
 Eigen::Vector3d FINAL_POSITIONS_ASS4[] = {

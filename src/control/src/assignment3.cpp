@@ -107,7 +107,7 @@ void move_to(Vector3d pf, Vector3d rpy, double gripper = 0, double k=0.1, double
 
 void pick_and_place(Vector3d pick, Vector3d place, int class_index) {
 
-  double PLACE_HEIGHT = DOWN_HEIGHT - counts[class_index] * 0.056;
+  double PLACE_HEIGHT = SUPER_DOWN_HEIGHT - counts[class_index] * 0.056;
   double rotation = -(2*pi*(double)((class_index/11)*45)/360) + pi;
 
   Vector3d rpy; rpy << 0, 0, pi;
@@ -117,7 +117,7 @@ void pick_and_place(Vector3d pick, Vector3d place, int class_index) {
   pick(2) = UP_HEIGHT;
   move_to(pick, rpy_approaching);
 
-  pick(2) = DOWN_HEIGHT;
+  pick(2) = SUPER_DOWN_HEIGHT;
   move_to(pick, rpy_approaching, OPEN_GRIP);
 
   move_to(pick, rpy_approaching, CLOSE_GRIP);
@@ -153,7 +153,7 @@ void visionCallback(const vision::custMsg::ConstPtr& msg) {
   Vector3d WorldCoords = Vector3d(msg->x, msg->y, msg->z);
   Vector3d Ur5Coords = invKin.fromWorldToUrd5(WorldCoords);
 
-  pick_and_place(Ur5Coords, invKin.fromWorldToUrd5(Vector3d(FINAL_POSITIONS[msg->index%11][0], FINAL_POSITIONS[msg->index%11][1], DOWN_HEIGHT)), msg->index);
+  pick_and_place(Ur5Coords, invKin.fromWorldToUrd5(Vector3d(FINAL_POSITIONS[msg->index%11][0], FINAL_POSITIONS[msg->index%11][1], SUPER_DOWN_HEIGHT)), msg->index);
   is_moving = false;
 }
 
@@ -180,6 +180,7 @@ void homing_procedure() {
   JointStateVector q_des_filtered;
   invKin.setDestinationPoint(dest,m,0);
   invKin.getJointsPositions(q_des);
+  q_des << 0, 0, 0, 0, 0, 0, 0, 0, 0;
   while (loop_time < TIME_FOR_MOVING) {
     q_des_filtered = secondOrderFilter(q_des, loop_frequency, TIME_FOR_MOVING);
     send_des_jstate(q_des_filtered);
@@ -217,9 +218,12 @@ int main(int argc, char** argv) {
 
   JointStateVector q_des_init;
   q_des_init << 0., 0., 0., 0., 0., 0., 0., 0., 0.;
+  send_des_jstate(q_des_init);
+  cout << "sent" << endl;
   initFilter(q_des_init);
 
   homing_procedure();
+  send_des_jstate(q_des_init);
   std::cout << "reached home" << std::endl;
   std::cout << "Waiting for vision message..." << std::endl;
 

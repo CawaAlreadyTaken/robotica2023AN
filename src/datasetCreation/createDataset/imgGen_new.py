@@ -228,7 +228,7 @@ def intersects(pos, blocks):
     posX = pos[0]
     posY = pos[1]
     for block in blocks:
-        if pow(block.pos[0]-posX, 2)+pow(block.pos[1]-posY, 2) < pow(threshold, 2):
+        if pow(block["pos"][0]-posX, 2)+pow(block["pos"][1]-posY, 2) < pow(threshold, 2):
             return True
     return False
 
@@ -325,6 +325,7 @@ while (True):
     time.sleep(2)
     spawner.screenShot_and_label(blocks_info)
     img_counter += 1
+    input()
     spawner.delete(blocks_info)
 
 # spawner.spawn([{

@@ -263,9 +263,9 @@ public:
 
   double close_to_collisions(Vector3d pos1, Vector3d pos2, Matrix<double, 6, 1> joints)
   {
-    const double Y_MURO_DIETRO = 0;
-    const double Z_TAVOLO_ALTO = 1.75;
-    const double Z_TAVOLO_BASSO = 1;
+    const double Y_MURO_DIETRO = 0+0.1;
+    const double Z_TAVOLO_ALTO = 1.6-0.1;
+    const double Z_TAVOLO_BASSO = 1+0.1;
     const int SCALE = 10;
     const int nsamples = 5;
 
@@ -287,11 +287,19 @@ public:
     {
       q += Qdot(q, linear_interpol(pos1_rcoords, pos2_rcoords, (double)i / nsamples), linear_velocity(pos1_rcoords, pos2_rcoords), Vector3d(0, 0, pi), Vector3d::Zero(), Matrix3d::Identity() * 0.1, Matrix3d::Identity() * 0.1) * (double)1 / nsamples;
 
+      vector<pair<int, int>> ignore_collisions = {{5, 3}, {5, 4}, {4, 3}};
+
       vector<Vector3d> joint_positions = get_joints_positions(q);
       for (int i = 2; i < 6; i++) {
         cost = max(cost, Y_MURO_DIETRO - joint_positions[i](1));
         cost = max(cost, joint_positions[i](2) - Z_TAVOLO_ALTO);
         cost = max(cost, Z_TAVOLO_BASSO - joint_positions[i](2));
+        // Check also collision with other joints
+        for (int j = 0; j < i; j++) {
+          if (find(ignore_collisions.begin(), ignore_collisions.end(), make_pair(i, j)) != ignore_collisions.end())
+            continue;
+          cost = max(cost, 0.3-(joint_positions[i]-joint_positions[j]).norm());
+        }
       }
     }
 
@@ -303,11 +311,12 @@ public:
     // cout << "end wcoords: " << pos2(0) << ", " << pos2(1) << endl;
     // cout << "end jcoords:" << endl << q << endl << endl << endl;
 
-    if (cost < threshold){
+    if (cost < 0){
       return 0;
     }
+    return 1000;
 
-    return (double)100 * (cost-threshold);
+    //return (double)1000 * (cost-threshold);
   }
 
 private:

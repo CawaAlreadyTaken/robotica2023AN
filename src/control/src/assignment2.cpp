@@ -22,6 +22,7 @@ ros::Subscriber sub;
 InverseKinematic invKin;
 DifferentialKinematic diffKin;
 bool is_moving;
+int moved_blocks;
 
 void send_des_jstate(const JointStateVector& joint_pos) {
   for (int i = 0; i < joint_pos.size(); i++) {
@@ -64,6 +65,7 @@ void homing_procedure() {
 
   loop_time = 0;
   diffKin.setRobotsPosition(q_des_filtered.head(6)); // actual position
+  is_moving = false;
   cout << "[*] Reached home" << endl;
 }
 
@@ -96,12 +98,12 @@ Matrix<double, 6, 1> move_to(Vector3d pf, Vector3d rpy, double gripper = 0, doub
 
   q0 << diffKin.getCurrentPosition(); //current joint coordinates
   qk = q0;
-  v_rpy = rpy - diffKin.getEulerAngles();  
+  v_rpy = rpy - diffKin.getEulerAngles();
 
   while(/*loop_time <= TIME_FOR_MOVING - Dt*/ t <= 1  ) {
     Matrix<double, 6, 1> tmp = qk;
     
-    qk += diffKin.Qdot(qk, linear_interpol(ee_pos, pf, t), trapezoidal_velocity(ee_pos, pf, t), linear_interpol(current_rpy, rpy, t), v_rpy, K, K_rpy) * Dt;
+    qk += diffKin.Qdot(qk, linear_interpol(ee_pos, pf, t), trapezoidal_velocity(ee_pos, pf, t), /*linear_interpol(current_rpy, rpy, t)*/Vector3d(0, 0, pi), /*v_rpy*/Vector3d(0, 0, 0), K, K_rpy) * Dt;
     // qk += diffKin.Qdot(qk, linear_interpol(ee_pos, pf, t), trapezoidal_velocity(ee_pos, pf, t), Vector3d(0,0,pi) , Vector3d(0,0,0), K, K_rpy) * Dt;
 
     to_send << qk, gripper, gripper, gripper;
@@ -123,6 +125,7 @@ Matrix<double, 6, 1> move_to(Vector3d pf, Vector3d rpy, double gripper = 0, doub
   cout << "[*] Moved to:" << endl << ee_pos << endl;
   current_rpy = diffKin.getEulerAngles();
   cout << "[*] Current rpy:" << endl << current_rpy << endl;
+  return qk;
 }
 
 
@@ -147,7 +150,7 @@ void move_collision_detection(Vector3d end_rcoords, Vector3d rpy, double gripper
   jointmap[start.first][start.second] = joints;
  
   init(start, end, gscores, hscores, fscores, fathers);
-  Path path = a_star(start, end, gscores, hscores, fscores, fathers, jointmap, manhattan_distance, close_to_collisions);
+  Path path = a_star(start, end, gscores, hscores, fscores, fathers, jointmap, euclidean_distance, close_to_collisions);
   Path points = get_lines(path);
 
   // for each point, convert into robots coordinates and move robot
@@ -163,15 +166,19 @@ void move_collision_detection(Vector3d end_rcoords, Vector3d rpy, double gripper
 }
 
 
-void pick_and_place(Vector3d pick, Vector3d place) {
+void pick_and_place(Vector3d pick, Vector3d place, bool go_super_low = false) {
 
   // assume i start at a set height
   Vector3d rpy; rpy << 0, 0, pi;
+  if (go_super_low)
+    CLOSE_GRIP = 2.8;
 
   pick(2) = UP_HEIGHT;
-  move_collision_detection(pick, rpy);
+  move_collision_detection(pick, rpy, CLOSE_GRIP);
 
   pick(2) = SUPER_DOWN_HEIGHT;
+  if (go_super_low)
+    pick(2) = 0.71;
   move_to(pick, rpy, OPEN_GRIP);
 
   move_to(pick, rpy, CLOSE_GRIP);
@@ -189,12 +196,14 @@ void pick_and_place(Vector3d pick, Vector3d place) {
 
   place(2) = UP_HEIGHT;
   move_to(place, rpy);
+  CLOSE_GRIP = 2.5;
 }
 
 
 void visionCallback(const vision::custMsg::ConstPtr& msg) {
   if(is_moving) return;
   is_moving = true;
+  moved_blocks++;
   std::cout << "Received vision message, starting to move..." << std::endl;
   std::cout << "x: " << msg->x << std::endl;
   std::cout << "y: " << msg->y << std::endl;
@@ -203,16 +212,19 @@ void visionCallback(const vision::custMsg::ConstPtr& msg) {
 
   Vector3d WorldCoords = Vector3d(msg->x, msg->y, msg->z);
   Vector3d Ur5Coords = invKin.fromWorldToUrd5(WorldCoords);
-
-  pick_and_place(Ur5Coords, invKin.fromWorldToUrd5(Vector3d(FINAL_POSITIONS[msg->index][0], FINAL_POSITIONS[msg->index][1], SUPER_DOWN_HEIGHT)));
-  homing_procedure();
+  bool go_super_low = (msg->index == 1 || msg->index == 6);
+  pick_and_place(Ur5Coords, invKin.fromWorldToUrd5(Vector3d(FINAL_POSITIONS[msg->index][0], FINAL_POSITIONS[msg->index][1], SUPER_DOWN_HEIGHT)), go_super_low);
+  if (moved_blocks == 7) {
+    homing_procedure();
+  }
   is_moving = false;
 }
 
 int main(int argc, char** argv) {
   ros::init(argc, argv, "custom_joint_publisher");
   ros::NodeHandle node;
-  is_moving = false;
+  is_moving = true;
+  moved_blocks = 0;
   node.getParam("/real_robot", real_robot);
   invKin = InverseKinematic();
   diffKin = DifferentialKinematic();

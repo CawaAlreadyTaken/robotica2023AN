@@ -54,6 +54,7 @@ Vector3d trapezoidal_velocity(Vector3d pi, Vector3d pf, double t) {
 
 Vector3d linear_velocity(Vector3d pi, Vector3d pf) {
 	return (pf - pi);
+
 }
 
 Matrix<double, 6, 1> get_joints(Node start, Node end, Jointmap& jointmap, double gripper = 0, double k=0.1, double k_rpy=0.1) {
@@ -74,7 +75,7 @@ Matrix<double, 6, 1> get_joints(Node start, Node end, Jointmap& jointmap, double
 	start_rcoords = diffKinPF.fromWorldToUr5(start_rcoords);
 	end_rcoords = diffKinPF.fromWorldToUr5(end_rcoords);
 
-	double nsamples = 2;
+	double nsamples = 6;
 
 	//debugging
 	// cout << "start wcoords: " << start.first << ", " << start.second << endl;
@@ -101,6 +102,7 @@ double close_to_collisions(Node u, Node v, Matrix<double, 6, 1> joints) {
 	Vector3d v_vector((double)v.first/SCALE, (double)v.second/SCALE, SET_HEIGHT);
 	return diffKinPF.close_to_collisions(u_vector, v_vector, joints);
 }
+
 
 vector<Node> neighbors(Node current) {
 	int i[8] = {1, 1, 1, 0, 0, -1, -1, -1};
@@ -129,7 +131,7 @@ Path reconstruct_path(Node end, Node start, Fathers fathers) {
 }
 
 vector<Node> get_lines(Path path) {
-	cout << "path contains :" << path.size() << endl; fflush(stdout);
+	cout << "[*] Path travels through: " << path.size() << " cells" << endl;
     vector<Node> res;
     res.push_back(path[0]);
 
@@ -160,6 +162,7 @@ vector<Node> get_lines(Path path) {
     }
 
 	res.push_back(path[path.size() - 1]);
+	cout << "[*] Number of direction changes: " << res.size()-1 << endl;
     return res;
 }
 
@@ -189,11 +192,21 @@ Path a_star(Node start, Node end, Envmap& gscores, Envmap& hscores, Envmap& fsco
 
 		if(current == end) {
 			cout << "[*] A-star found a path" << endl;
+			cout << "[*] Cost of the found path: " << gscores[end.first][end.second] << endl;
+			cout << "[*] fscores:" << endl;
+			for (int i = 0; i < fscores.size(); i++) {
+				for (int j = 0; j < fscores[i].size(); j++) {
+					if (i == end.first && j == end.second)
+						cout << "E" << fscores[i][j] << "E" << "\t";
+					else if (i == start.first && j == start.second)
+						cout << "S" << fscores[i][j] << "S" << "\t";
+					else
+						cout << fscores[i][j] << "\t";
+				}
+				cout << endl;
+			}
+
 			auto res = reconstruct_path(end, start, fathers);
-			// problem: res is empty
-			for(auto &[a, b] : res) {
-				cout << a << ", " << b << endl;
-			}	
 			return res;
 		}
 		auto nb = neighbors(current);
@@ -219,8 +232,8 @@ void init(Node start, Node end, Envmap& gscores, Envmap& hscores, Envmap& fscore
 		for(int j = 0; j < DIM; j++) {
 			fathers[i][j] = {-1, -1};
 			gscores[i][j] = HIGH_COST;
-			hscores[i][j] = manhattan_distance({i, j}, end);
-			fscores[i][j] = gscores[i][j] + manhattan_distance({i, j}, end);
+			hscores[i][j] = euclidean_distance({i, j}, end);
+			fscores[i][j] = gscores[i][j] + hscores[i][j];
 		}
 	}
 
