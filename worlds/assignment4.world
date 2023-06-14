@@ -1,6 +1,9 @@
 <?xml version="1.0"?>
 <sdf version="1.4">
   <world name="default">
+  <scene>
+    <shadows>0</shadows>
+  </scene>
     <physics type='ode'>
       <gravity>0 0 -9.81</gravity>
       <!-- max step size has to be a multiple of the desired task rate-->

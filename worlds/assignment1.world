@@ -1,6 +1,9 @@
 <?xml version="1.0" ?>
 <sdf version="1.4">
   <world name="default">
+  <scene>
+    <shadows>0</shadows>
+  </scene>
     <physics type='ode'>
       <gravity>0 0 -9.81</gravity>
       <!-- max step size has to be a multiple of the desired task rate-->
@@ -37,12 +40,12 @@
       <pose> 0.65 0.4 1   0 0 0</pose> 
       <static>true</static>
     </include>
-    <include>
+    <!-- <include>
       <name>X1-Y2-Z2-Placeholder</name>
       <uri>model://Placeholders/X1-Y2-Z2</uri>
       <pose> 0.65 0.25 1   0 0 0</pose> 
       <static>true</static>
-    </include>
+    </include> -->
     <include>
       <name>X1-Y2-Z2-CHAMFER-Placeholder</name>
       <uri>model://Placeholders/X1-Y2-Z2-CHAMFER</uri>
@@ -50,8 +53,8 @@
       <static>true</static>
     </include>
     <include>
-      <name>X1-Y2-Z2-TWINFILLET-Placeholder</name>
-      <uri>model://Placeholders/X1-Y2-Z2-TWINFILLET</uri>
+      <name>X1-Y2-Z2-Placeholder</name>
+      <uri>model://Placeholders/X1-Y2-Z2</uri>
       <pose> 0.8 0.55 1   0 0 0</pose> 
       <static>true</static>
     </include>

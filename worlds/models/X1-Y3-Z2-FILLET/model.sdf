@@ -4,7 +4,7 @@
 		<pose>0 0 0 0 0 0</pose>
 		<link name="lego_link">
 			<inertial>
-			<pose>-0.015 0 0.029 0 0 0</pose>
+			<pose>0 -0.015 0.029 0 0 0</pose>
 				<mass>1</mass>
 				<inertia>
 					<ixx>0.001</ixx>
