@@ -1,8 +1,3 @@
-/*
-  TODO:
-   - fix rotation
-*/
-
 #include <custom_joint_publisher.h>
 #include <math.h>
 #include <vision/custMsg.h>
@@ -14,7 +9,6 @@
 #define DIM 20
 #define SET_HEIGHT 1.174
 #define INCREMENT 0.1
-#define SCALE 20
 #define HIGH_COST 100
 
 ros::Subscriber sub;
@@ -77,7 +71,6 @@ Matrix<double, 6, 1> move_to(Vector3d pf, Vector3d rpy, double gripper = 0, doub
 
   Matrix<double, 6, 1> q0;
   Matrix<double, 6, 1> qk;
-  //Vector3d v;
   Vector3d v_rpy;
   JointStateVector to_send;
   Matrix<double, 3, 3> K;
@@ -100,11 +93,10 @@ Matrix<double, 6, 1> move_to(Vector3d pf, Vector3d rpy, double gripper = 0, doub
   qk = q0;
   v_rpy = rpy - diffKin.getEulerAngles();
 
-  while(/*loop_time <= TIME_FOR_MOVING - Dt*/ t <= 1  ) {
+  while(t <= 1  ) {
     Matrix<double, 6, 1> tmp = qk;
     
-    qk += diffKin.Qdot(qk, linear_interpol(ee_pos, pf, t), trapezoidal_velocity(ee_pos, pf, t), /*linear_interpol(current_rpy, rpy, t)*/Vector3d(0, 0, pi), /*v_rpy*/Vector3d(0, 0, 0), K, K_rpy) * Dt;
-    // qk += diffKin.Qdot(qk, linear_interpol(ee_pos, pf, t), trapezoidal_velocity(ee_pos, pf, t), Vector3d(0,0,pi) , Vector3d(0,0,0), K, K_rpy) * Dt;
+    qk += diffKin.Qdot(qk, linear_interpol(ee_pos, pf, t), trapezoidal_velocity(ee_pos, pf, t), Vector3d(0, 0, pi), Vector3d(0, 0, 0), K, K_rpy) * Dt;
 
     to_send << qk, gripper, gripper, gripper;
     send_des_jstate(to_send);
@@ -116,7 +108,7 @@ Matrix<double, 6, 1> move_to(Vector3d pf, Vector3d rpy, double gripper = 0, doub
     loop_rate.sleep();
   }
 
-  loop_rate.sleep(); // serve per far arrivare loop_time a 3 secondi esatti
+  loop_rate.sleep();
 
   diffKin.setRobotsPosition(qk);
   loop_time = 0;
@@ -155,12 +147,12 @@ void move_collision_detection(Vector3d end_rcoords, Vector3d rpy, double gripper
 
   // for each point, convert into robots coordinates and move robot
 
-  for(int i = 1; i < points.size()-1; ++i) {
-    Vector3d dest = diffKin.fromWorldToUr5(Vector3d((double)points[i].first / SCALE, (double)points[i].second / SCALE, SET_HEIGHT));
+  for(int i = 1; i < points.size(); ++i) {
+    Vector3d dest = diffKin.fromWorldToUr5(Vector3d((double)points[i].first / DIM, (double)points[i].second / DIM, SET_HEIGHT));
     move_to(dest, rpy, gripper);
   }
 
-  cout << "last movement" << endl;
+  cout << "[*] Last movement" << endl;
   end_rcoords(2) = final_height;
   move_to(end_rcoords, rpy, gripper);
 }
@@ -168,7 +160,6 @@ void move_collision_detection(Vector3d end_rcoords, Vector3d rpy, double gripper
 
 void pick_and_place(Vector3d pick, Vector3d place, bool go_super_low = false) {
 
-  // assume i start at a set height
   Vector3d rpy; rpy << 0, 0, pi;
   if (go_super_low)
     CLOSE_GRIP = 2.8;
@@ -204,19 +195,25 @@ void visionCallback(const vision::custMsg::ConstPtr& msg) {
   if(is_moving) return;
   is_moving = true;
   moved_blocks++;
-  std::cout << "Received vision message, starting to move..." << std::endl;
-  std::cout << "x: " << msg->x << std::endl;
-  std::cout << "y: " << msg->y << std::endl;
-  std::cout << "z: " << msg->z << std::endl;
-  std::cout << "index: " << msg->index << std::endl;
+  std::cout << "[*] Received vision message, starting to move..." << std::endl;
+  std::cout << "[*] x: " << msg->x << std::endl;
+  std::cout << "[*] y: " << msg->y << std::endl;
+  std::cout << "[*] z: " << msg->z << std::endl;
+  std::cout << "[*] index: " << msg->index << std::endl;
 
   Vector3d WorldCoords = Vector3d(msg->x, msg->y, msg->z);
+    if (msg->orient != 2) {
+    WorldCoords(0) += 0.06;
+  }
   Vector3d Ur5Coords = invKin.fromWorldToUrd5(WorldCoords);
+  // For super low blocks (Z = 1)
   bool go_super_low = (msg->index == 1 || msg->index == 6);
-  pick_and_place(Ur5Coords, invKin.fromWorldToUrd5(Vector3d(FINAL_POSITIONS[msg->index][0], FINAL_POSITIONS[msg->index][1], SUPER_DOWN_HEIGHT)), go_super_low);
+  pick_and_place(Ur5Coords, invKin.fromWorldToUrd5(Vector3d(FINAL_POSITIONS_ASS2[msg->index][0], FINAL_POSITIONS_ASS2[msg->index][1], SUPER_DOWN_HEIGHT)), go_super_low);
+  /*
   if (moved_blocks == 7) {
     homing_procedure();
   }
+  */
   is_moving = false;
 }
 
@@ -243,29 +240,10 @@ int main(int argc, char** argv) {
   
   JointStateVector q_des_init;
   q_des_init << -0.32, -0.78, -2.56, -1.63, -1.57,  3.49, 0, 0, 0;
-  //q_des_init << 0, 0, 0, 0, 0, 0, 0, 0, 0;
   initFilter(q_des_init);
   homing_procedure();
 
-  std::cout << "Waiting for vision message..." << std::endl;
-
-  Matrix<double, 6, 1> homing_joints;
-  homing_joints << -0.804229, -1.45024, -1.95979,  -1.3025,  -1.5708,  2.37586;
-  Vector3d start_rcoords = diffKin.ur5_direct(homing_joints).col(3).head(3);
-  Vector3d end_rcoords(0.3, 0.1, 0.58);
-  //Vector3d end_wcoords(0.1 , 0.2, 1);
-  //move_collision_detection(start_rcoords, homing_joints, diffKin.fromWorldToUr5(end_wcoords));
-  //cout << "finished collision detection" << endl;
-  while (false) {
-    double x, y, z, r, p, yw;
-    cin >> x >> y >> z >> r >> p >> yw;
-    //homing_procedure();
-    Vector3d end_rcoords(x, y, z);
-    Vector3d rpy(r, p, yw);
-    //pick_and_place(diffKin.getEECoords(), end_rcoords, 0);
-    move_to(end_rcoords, rpy);
-  }
-  //move_to(end_rcoords, Vector3d(0, 0, pi));
+  cout << "[*] Waiting for vision message..." << endl;
 
   while (ros::ok()) {
     ros::spinOnce();

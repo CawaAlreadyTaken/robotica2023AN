@@ -31,13 +31,13 @@ install(TARGETS cust_msg
 #         RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION})
 
 
-#add_executable(assignment1 src/assignment1.cpp)
-#target_link_libraries(assignment1 ${catkin_LIBRARIES})
-#install(TARGETS assignment1
-#  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-#)
+add_executable(assignment1 src/assignment1.cpp src/path_finding.cpp)
+target_link_libraries(assignment1 ${catkin_LIBRARIES})
+install(TARGETS assignment1
+ ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+ LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+ RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 
 
 add_executable(assignment2 src/assignment2.cpp src/path_finding.cpp)
@@ -45,13 +45,22 @@ target_link_libraries(assignment2 ${catkin_LIBRARIES})
 install(TARGETS assignment2
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 
 
-# add_executable(assignment3 src/assignment3.cpp)
-# target_link_libraries(assignment3 ${catkin_LIBRARIES})
-# install(TARGETS assignment3
-#   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-# )
+add_executable(assignment3 src/assignment3.cpp src/path_finding.cpp)
+target_link_libraries(assignment3 ${catkin_LIBRARIES})
+install(TARGETS assignment3
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+add_executable(assignment4 src/assignment4.cpp src/path_finding.cpp)
+target_link_libraries(assignment4 ${catkin_LIBRARIES})
+install(TARGETS assignment4
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)

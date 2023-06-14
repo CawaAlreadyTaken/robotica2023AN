@@ -89,17 +89,24 @@ class VisionNode():
     def getOrientation(self):
         responses = []
         img = imread(f"{self.HOME_DIR}cropped.jpg", 0)
+        matchings = {}
         for item in listdir(f"{self.HOME_DIR}templates"):
             item_path = path.join(f"{self.HOME_DIR}templates", item)
+            tm = self.template_matching(img, item_path)
+            if item[:-2] in matchings:
+                matchings[item[:-2]].append(tm)
+            else:
+                matchings[item[:-2]] = [tm]
             responses.append([self.template_matching(img, item_path), item[:-2]])
+        # for response in matchings:
+        #     responses.append([np.mean(matchings[response]), response])
         responses.sort(reverse=True)
-        # print(responses)
         if responses[0][1] == "basso":
-            return 0
+            return [0, responses[0][0]]
         elif responses[0][1] == "laterale":
-            return 1
+            return [1, responses[0][0]]
         elif responses[0][1] == "alto":
-            return 2
+            return [2, responses[0][0]]
         else:
             raise Exception("Errore QUA")
     
@@ -121,16 +128,27 @@ class VisionNode():
             if (len(boxes) > 0):
             #for i in range (len(boxes)):
                 arr = boxes[0]
-                cx = arr[0]+(arr[2]-arr[0])/2
-                cy = arr[1]+(arr[3]-arr[1])/2
-                cropped_image = img[int(arr[1]):int(arr[3]), int(arr[0]):int(arr[2]), 0:3]
+                tlx = arr[0]
+                tly = arr[1]
+                brx = arr[2]
+                bry = arr[3]
+                cx = tlx+(brx-tlx)/2
+                cy = tly+(bry-tly)/2
+                cropped_image = img[int(tly):int(bry), int(tlx):int(brx), 0:3]
                 imwrite(f"{self.HOME_DIR}cropped.jpg", cropped_image)
-                orientamento = self.getOrientation() # 0 basso, 1 laterale, 2 alto 
-                # TODO: parsa meglio (coi gradi) e usa orientamento
+                orientamento1 = self.getOrientation() # 0 basso, 1 laterale, 2 alto
+                print(orientamento1)
+                cropped_image = img[int(tly)+17:int(bry)+17, int(tlx):int(brx), 0:3]
+                imwrite(f"{self.HOME_DIR}cropped.jpg", cropped_image)
+                orientamento2 = self.getOrientation() # 0 basso, 1 laterale, 2 alto
+                print(orientamento2)
+                orientamento = orientamento1[0] if orientamento1[1] > orientamento2[1] else orientamento2[0]
                 cls = int(clss[0])
                 conf = confs[0]
                 realWorldCoords = self.fromImageToWorld([cx, cy])
                 realWorldCoords.append(self.TAVOLO_HEIGHT)
+                if orientamento == 1 or orientamento == 0:
+                    realWorldCoords[0] -= 0.06
                 rwCoordsParsed = [float(j) for j in realWorldCoords]
                 # print(f"This should be an array of 3 items: {realWorldCoords}")
                 print(f"Found block {cls} at coordinates: {realWorldCoords}, with probability: {conf}")

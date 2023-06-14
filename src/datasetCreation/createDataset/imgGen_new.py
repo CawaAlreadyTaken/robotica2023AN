@@ -325,7 +325,6 @@ while (True):
     time.sleep(2)
     spawner.screenShot_and_label(blocks_info)
     img_counter += 1
-    input()
     spawner.delete(blocks_info)
 
 # spawner.spawn([{

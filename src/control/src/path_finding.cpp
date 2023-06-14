@@ -4,7 +4,6 @@
 #define DIM 20
 #define SET_HEIGHT 1.174
 #define INCREMENT 0.1
-#define SCALE 20
 #define HIGH_COST 100000
 
 bool operator == (const Node& u, const Node& v) {
@@ -69,8 +68,8 @@ Matrix<double, 6, 1> get_joints(Node start, Node end, Jointmap& jointmap, double
 	// read joints from jointmap, this value should be defined according to my logic
 	q0 = jointmap[start.first][start.second];
 
-	Vector3d start_rcoords((double)start.first/SCALE, (double)start.second/SCALE, SET_HEIGHT);
-	Vector3d end_rcoords((double)end.first/SCALE, (double)end.second/SCALE, SET_HEIGHT);
+	Vector3d start_rcoords((double)start.first/DIM, (double)start.second/DIM, SET_HEIGHT);
+	Vector3d end_rcoords((double)end.first/DIM, (double)end.second/DIM, SET_HEIGHT);
 
 	start_rcoords = diffKinPF.fromWorldToUr5(start_rcoords);
 	end_rcoords = diffKinPF.fromWorldToUr5(end_rcoords);
@@ -98,8 +97,8 @@ Matrix<double, 6, 1> get_joints(Node start, Node end, Jointmap& jointmap, double
 double close_to_collisions(Node u, Node v, Matrix<double, 6, 1> joints) {
 	DifferentialKinematic diffKinPF = DifferentialKinematic();
 
-	Vector3d u_vector((double)u.first/SCALE, (double)u.second/SCALE, SET_HEIGHT);
-	Vector3d v_vector((double)v.first/SCALE, (double)v.second/SCALE, SET_HEIGHT);
+	Vector3d u_vector((double)u.first/DIM, (double)u.second/DIM, SET_HEIGHT);
+	Vector3d v_vector((double)v.first/DIM, (double)v.second/DIM, SET_HEIGHT);
 	return diffKinPF.close_to_collisions(u_vector, v_vector, joints);
 }
 
@@ -161,7 +160,6 @@ vector<Node> get_lines(Path path) {
         }
     }
 
-	res.push_back(path[path.size() - 1]);
 	cout << "[*] Number of direction changes: " << res.size()-1 << endl;
     return res;
 }
@@ -207,6 +205,11 @@ Path a_star(Node start, Node end, Envmap& gscores, Envmap& hscores, Envmap& fsco
 			}
 
 			auto res = reconstruct_path(end, start, fathers);
+			cout << "[*] Path length: " << res.size() << endl;
+			cout << "[*] Path:" << endl;
+			for (auto e: res) {
+				cout << e.first << ", " << e.second << endl;
+			}
 			return res;
 		}
 		auto nb = neighbors(current);
@@ -243,5 +246,5 @@ void init(Node start, Node end, Envmap& gscores, Envmap& hscores, Envmap& fscore
 }
 
 Node get_closest_node(Vector3d wcoords) {
-	return Node((double)round(wcoords[0] * SCALE), (double)round(wcoords[1] * SCALE));
+	return Node((double)round(wcoords[0] * DIM), (double)round(wcoords[1] * DIM));
 }

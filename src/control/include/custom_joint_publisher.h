@@ -34,8 +34,11 @@ float UP_HEIGHT = 0.55;
 float LITTLE_DOWN_HEIGHT = 0.68;
 float SUPER_DOWN_HEIGHT = 0.702;
 int NUMBER_OF_CLASSES = 11;
+float BLOCK_UP_HEIGHT = 0.35;
+float BLOCK_LITTLE_DOWN_HEIGHT = 0.5;
+Eigen::Vector3d POSITION_ON_BLOCK_FOR_ROTATION_WORLD(0, 0.1, 1);
 
-Eigen::Vector3d FINAL_POSITIONS[] = {
+Eigen::Vector3d FINAL_POSITIONS_ASS3[] = {
     Eigen::Vector3d(0.65, 0.55, 1),
     Eigen::Vector3d(0.65, 0.4, 1),
     Eigen::Vector3d(0.8, 0.7, 1),
@@ -48,14 +51,23 @@ Eigen::Vector3d FINAL_POSITIONS[] = {
     Eigen::Vector3d(0.94, 0.4, 1)
 };
 
-Eigen::Vector3d FINAL_POSITIONS_ASS4[] = {
+Eigen::Vector3d FINAL_POSITIONS_ASS2[] = {
     Eigen::Vector3d(0.65, 0.55, 1),
+    Eigen::Vector3d(0.65, 0.4, 1),
     Eigen::Vector3d(0.8, 0.7, 1),
     Eigen::Vector3d(0.8, 0.55, 1),
     Eigen::Vector3d(0.8, 0.4, 1),
+    Eigen::Vector3d(0.8, 0.4, 1),
     Eigen::Vector3d(0.95, 0.7, 1),
     Eigen::Vector3d(0.95, 0.55, 1),
-    Eigen::Vector3d(0.95, 0.4, 1),
+    Eigen::Vector3d(0.95, 0.7, 1),
+    Eigen::Vector3d(0.94, 0.4, 1)
+};
+
+Eigen::Vector3d FINAL_POSITIONS_ASS4[] = {
+    Eigen::Vector3d(0.80, 0.65, 1),
+    Eigen::Vector3d(0.8, 0.7, 1),
+    Eigen::Vector3d(0.8, 0.6, 1),
 };
 
 // Publishers

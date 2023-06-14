@@ -1,242 +1,29 @@
-/*
-  TODO:
-   - implement
-*/
-
 #include <custom_joint_publisher.h>
 #include <math.h>
 #include <vision/custMsg.h>
-#include <vector>
 
 #include "inverseKin.cpp"
+#include "differentialKin.cpp"
+#include <path_finding.h>
 
-<<<<<<< HEAD
-#define X_INC 0.1
-#define Y_INC 0.1
+#define DIM 20
+#define SET_HEIGHT 1.174
+#define INCREMENT 0.1
+#define HIGH_COST 100
 
-double x_min;
-double y_min;
-int xsteps;
-int ysteps;
-int max_x_steps;
-double x_inc;
-double y_inc;
-Vector3d pos;
-
-void increment(Vector3d &pos) {
-    pos(0) = x_min + (xsteps%max_x_steps) * x_inc;
-    ysteps = xsteps/max_x_steps;
-    pos(1) = ysteps * y_inc; 
-    xsteps++;
-}
-
-typedef struct block{ 
-  int type;
-  Vector3d pos;
-
-  block(int _class, Vector3d _pos) : type(_class), pos(_pos) {}
-} block;
-
-typedef struct blocks {
-  vector<block> block_arr;
-
-  blocks() {}
-  blocks(vector<block> blk) {
-    for(auto i = blk.begin(); i != blk.end(); i++) {
-      this->block_arr.push_back(*i);
-    }
-  }
-
-  void inserisci(int cl, double x, double y, double z) {
-    block_arr.push_back(block(cl, Vector3d(x, y, z)));
-  }
-
-  void inserisci(int cl, Vector3d pos){
-    block_arr.push_back(block(cl, pos));
-  }
-
-  void riordina() {
-    sort(this->block_arr.begin(), this->block_arr.end(), [](const block& a, const block& b) -> bool { return a.pos[2] < b.pos[2]; });
-  }
-
-  vector<block>::iterator find(int cl) {
-    auto r = find_if(block_arr.begin(), block_arr.end(), [elem](const int cl){if(elem.type == cl) return true; return false;});
-    if(r == NULL) {
-      cout << "no blocks for class " << cl << " found" << endl;
-    }
-    return r;
-  }
-} blocks;
-
-ostream &operator << (ostream &os, const blocks &b) {
-  for(auto i = b.block_arr.begin(); i != b.block_arr.end(); i++) {
-    os << i->type << ", pos: " << "[" << i->pos[0] << ", " << i->pos[1] << ", " << i->pos[2] << "]" << endl;
-  }
-  return os;
-}
-
-//my blocks
-blocks my_blocks;
-
-const double pi = 2 * acos(0.0);
-Vector3d finalDestination;
 ros::Subscriber sub;
 
 InverseKinematic invKin;
+DifferentialKinematic diffKin;
 bool is_moving;
+int positioned = 0;
 
-=======
-const double pi = 2 * acos(0.0);
-ros::Subscriber sub;
-
-int counter = 0;
-
-InverseKinematic invKin;
-bool is_moving;
-
-typedef struct Blocks{
-  int index;
-  Vector3d position;
-} Blocks;
-
-Blocks blocks[8];
-
-vector <Blocks> blocksToMove = {
-  {10, Vector3d(0.1, 0.35, 0.87)},
-  {10, Vector3d(0.1, 0.5, 0.87)},
-  {10, Vector3d(0.1, 0.35, 0.925)},
-  {10, Vector3d(0.1, 0.5, 0.925)},
-  {10, Vector3d(0.1, 0.35, 0.98)},
-  {10, Vector3d(0.1, 0.5, 0.98)},
-  {8, Vector3d(0.1, 0.425, 1.035)}
-};
-
-
->>>>>>> f1224cb467ff0dce438994e4794012ad43c169db
 void send_des_jstate(const JointStateVector& joint_pos) {
   for (int i = 0; i < joint_pos.size(); i++) {
     jointState_msg_robot.data[i] = joint_pos[i];
   }
 
   pub_des_jstate.publish(jointState_msg_robot);
-}
-
-<<<<<<< HEAD
-void moveRobot(Vector3d dest, double height, double g, double time) {
-  ros::Rate loop_rate(loop_frequency);
-  dest(2) = height;
-  Vector3d m(0, 0, pi);
-=======
-void moveRobot(Vector3d dest, double height, double g, double time, double rotation = pi) {
-  ros::Rate loop_rate(loop_frequency);
-  dest(2) = height;
-  Vector3d m(0, 0, rotation);
->>>>>>> f1224cb467ff0dce438994e4794012ad43c169db
-  JointStateVector q_des;
-  JointStateVector q_des_filtered;
-  invKin.setDestinationPoint(dest,m,g);
-  invKin.getJointsPositions(q_des);
-  while (loop_time < TIME_FOR_MOVING) {
-    q_des_filtered = secondOrderFilter(q_des, loop_frequency, time);
-    send_des_jstate(q_des_filtered);
-    loop_time += (double)1 / loop_frequency;
-    ros::spinOnce();
-    loop_rate.sleep();
-  }
-  loop_time = 0;
-  std::cout << "Robot moved" << std::endl;
-}
-
-<<<<<<< HEAD
-void getMoveAndDropObject(Vector3d initialPosition, Vector3d finalPosition) {
-  moveRobot(initialPosition, UP_HEIGHT, OPEN_GRIP, TIME_FOR_MOVING);
-  moveRobot(initialPosition, DOWN_HEIGHT, OPEN_GRIP, TIME_FOR_LOWERING_RISING);
-  moveRobot(initialPosition, DOWN_HEIGHT, CLOSE_GRIP, TIME_FOR_CLOSING_OPENING);
-  moveRobot(initialPosition, UP_HEIGHT, CLOSE_GRIP, TIME_FOR_LOWERING_RISING);
-=======
-
-void getMoveAndDropObject(Vector3d initialPosition, Vector3d finalPosition, int index/*index della classe che spostiamo*/) {
-  double rotation = -(2*pi*(double)((index/11)*45)/360) + pi;
-  cout << "initialPosition: " << endl << initialPosition << endl << "finalPosition: " << endl << finalPosition << endl << "rotation: " << endl << rotation << endl;
-  moveRobot(initialPosition, UP_HEIGHT, OPEN_GRIP, TIME_FOR_MOVING,rotation);
-  moveRobot(initialPosition, DOWN_HEIGHT, OPEN_GRIP, TIME_FOR_LOWERING_RISING,rotation);
-  moveRobot(initialPosition, DOWN_HEIGHT, CLOSE_GRIP, TIME_FOR_CLOSING_OPENING,rotation);
-  moveRobot(initialPosition, UP_HEIGHT, CLOSE_GRIP, TIME_FOR_LOWERING_RISING,rotation);
-  moveRobot(finalPosition, UP_HEIGHT, CLOSE_GRIP, TIME_FOR_MOVING);
-  moveRobot(finalPosition, DOWN_HEIGHT, CLOSE_GRIP, TIME_FOR_LOWERING_RISING);
-  moveRobot(finalPosition, DOWN_HEIGHT, OPEN_GRIP, TIME_FOR_CLOSING_OPENING);
-  moveRobot(finalPosition, UP_HEIGHT, OPEN_GRIP, TIME_FOR_LOWERING_RISING);
-  blocks[counter].index = index;
-  blocks[counter].position = finalPosition;
-}
-
-void buildBlock(Vector3d initialPosition, Vector3d finalPosition, int index){
-  double rotation = -(2*pi*(double)((index/11)*45)/360) + pi;
-  cout << "initialPosition: " << endl << initialPosition << endl << "finalPosition: " << endl << finalPosition << endl << "rotation: " << endl << rotation << endl;
-  moveRobot(initialPosition, UP_HEIGHT, OPEN_GRIP, TIME_FOR_MOVING,rotation);
-  moveRobot(initialPosition, DOWN_HEIGHT, OPEN_GRIP, TIME_FOR_LOWERING_RISING,rotation);
-  moveRobot(initialPosition, DOWN_HEIGHT, CLOSE_GRIP, TIME_FOR_CLOSING_OPENING,rotation);
-  moveRobot(initialPosition, UP_HEIGHT, CLOSE_GRIP, TIME_FOR_LOWERING_RISING,rotation);
->>>>>>> f1224cb467ff0dce438994e4794012ad43c169db
-  moveRobot(finalPosition, UP_HEIGHT, CLOSE_GRIP, TIME_FOR_MOVING);
-  moveRobot(finalPosition, DOWN_HEIGHT, CLOSE_GRIP, TIME_FOR_LOWERING_RISING);
-  moveRobot(finalPosition, DOWN_HEIGHT, OPEN_GRIP, TIME_FOR_CLOSING_OPENING);
-  moveRobot(finalPosition, UP_HEIGHT, OPEN_GRIP, TIME_FOR_LOWERING_RISING);
-}
-
-<<<<<<< HEAD
-void visionCallback(const vision::custMsg::ConstPtr& msg) { //ordina i blocchi che vede
-=======
-void build(){
-  cout<<"BUILDING STARTED"<<endl;
-  for(int j = 0; j < 7; j++){
-    for(int i = 0; i < 7; i++){
-      if(blocks[i].index%11 == blocksToMove[j].index ){
-        buildBlock(invKin.fromWorldToUrd5(blocks[i].position), invKin.fromWorldToUrd5(blocksToMove[j].position), blocks[i].index);
-        blocks[i].index = -1;
-        break;
-      }
-    }
-  }
-  cout << "BUILDING FINISHED" << endl;
-  exit(0);
-}
-
-void visionCallback(const vision::custMsg::ConstPtr& msg) {
->>>>>>> f1224cb467ff0dce438994e4794012ad43c169db
-  if(is_moving) return;
-  is_moving = true;
-  std::cout << "Received vision message, starting to move..." << std::endl;
-  std::cout << "x: " << msg->x << std::endl;
-  std::cout << "y: " << msg->y << std::endl;
-  std::cout << "z: " << msg->z << std::endl;
-  std::cout << "index: " << msg->index << std::endl;
-<<<<<<< HEAD
-  
-  Vector3d WorldCoords = Vector3d(msg->x, msg->y, msg->z);
-  Vector3d Ur5Coords = invKin.fromWorldToUrd5(WorldCoords);
-  Vector3d finalDestination = pos;
-  my_blocks.inserisci(msg->index%11, finalDestination);
-  increment(pos);
-  cout << "moving to: " << "[" << pos(0) << ", " << pos(1) << ", " << pos(2) << "]" << endl;
- 
-  getMoveAndDropObject(Ur5Coords, finalDestination);
-  sub.shutdown();
-  is_moving = false;
-  exit(0);
-=======
-
-  Vector3d WorldCoords = Vector3d(msg->x, msg->y, msg->z);
-  Vector3d Ur5Coords = invKin.fromWorldToUrd5(WorldCoords);
-
-  getMoveAndDropObject(Ur5Coords, invKin.fromWorldToUrd5(Vector3d(FINAL_POSITIONS_ASS4[counter][0], FINAL_POSITIONS_ASS4[counter][1], DOWN_HEIGHT)), msg->index);
-  counter++;
-  cout<<"counter: "<<counter<<endl;
-  if(counter == 7) {
-    build();
-  };
-  is_moving = false;
->>>>>>> f1224cb467ff0dce438994e4794012ad43c169db
 }
 
 void initFilter(const JointStateVector& joint_pos) {
@@ -254,7 +41,6 @@ JointStateVector secondOrderFilter(const JointStateVector& input,
   return filter_2;
 }
 
-<<<<<<< HEAD
 void homing_procedure() {
   Vector3d dest(0.2, -0.4, 0.58);
   ros::Rate loop_rate(loop_frequency);
@@ -266,42 +52,184 @@ void homing_procedure() {
   while (loop_time < TIME_FOR_MOVING) {
     q_des_filtered = secondOrderFilter(q_des, loop_frequency, TIME_FOR_MOVING);
     send_des_jstate(q_des_filtered);
-    loop_time += (double)1 / loop_frequency;
+    loop_time += (double)1 / (loop_frequency * TIME_FOR_MOVING);
     ros::spinOnce();
     loop_rate.sleep();
   }
+
   loop_time = 0;
+  diffKin.setRobotsPosition(q_des_filtered.head(6)); // actual position
+  is_moving = false;
+  cout << "[*] Reached home" << endl;
+}
+
+Matrix<double, 6, 1> move_to(Vector3d pf, Vector3d rpy, double gripper = 0, double k=0.1, double k_rpy=0.1) {
+  ros::Rate loop_rate(loop_frequency);
+
+  Vector3d ee_pos = diffKin.getEECoords();
+  Vector3d current_rpy = diffKin.getEulerAngles();
+
+  Matrix<double, 6, 1> q0;
+  Matrix<double, 6, 1> qk;
+  Vector3d v_rpy;
+  JointStateVector to_send;
+  Matrix<double, 3, 3> K;
+  Matrix<double, 3, 3> K_rpy;
+
+  K <<
+  k, 0, 0,
+  0, k, 0,
+  0, 0, k;
+  K_rpy <<
+  k_rpy, 0, 0,
+  0, k_rpy, 0,
+  0, 0, k_rpy;
+
+  double Dt = (double)1 / (loop_frequency * TIME_FOR_MOVING);
+  double t = Dt;
+
+
+  q0 << diffKin.getCurrentPosition(); //current joint coordinates
+  qk = q0;
+  v_rpy = rpy - diffKin.getEulerAngles();
+
+  while(t <= 1  ) {
+    Matrix<double, 6, 1> tmp = qk;
+    
+    qk += diffKin.Qdot(qk, linear_interpol(ee_pos, pf, t), trapezoidal_velocity(ee_pos, pf, t), Vector3d(0, 0, pi), Vector3d(0, 0, 0), K, K_rpy) * Dt;
+
+    to_send << qk, gripper, gripper, gripper;
+    send_des_jstate(to_send);
+
+    loop_time += (double)1 / (loop_frequency * TIME_FOR_MOVING);
+    t+=Dt;
+
+    ros::spinOnce();
+    loop_rate.sleep();
+  }
+
+  loop_rate.sleep();
+
+  diffKin.setRobotsPosition(qk);
+  loop_time = 0;
+
+  ee_pos = diffKin.getEECoords();
+  cout << "[*] Moved to:" << endl << ee_pos << endl;
+  current_rpy = diffKin.getEulerAngles();
+  cout << "[*] Current rpy:" << endl << current_rpy << endl;
+  return qk;
 }
 
 
-int main(int argc, char** argv) {
-  /*
-   * inizializza figura
-   * */
+void move_collision_detection(Vector3d end_rcoords, Vector3d rpy, double gripper = 0, double final_height = 0.58, double k = 0.1, double k_rpy = 0.1) {
+  Vector3d start_rcoords = diffKin.getEECoords();
+  Matrix<double, 6, 1> joints = diffKin.getCurrentPosition();
   
-  xsteps = 0;
-  ysteps = 0;
-  x_min = -0.8;
-  double x_max = 0.8; 
-  y_min = -0.9;
-  max_x_steps = (x_max - x_min)/x_inc;
-  y_inc = 0.1; 
-  x_inc = 0.1;
-  pos << x_min, y_min;
+  // get Nodes from pi and pf
+  Vector3d pi_wcoords = diffKin.fromUr5ToWorld(start_rcoords);
+  Vector3d pf_wcoords = diffKin.fromUr5ToWorld(end_rcoords);
 
-=======
-int main(int argc, char** argv) {
+  Node start = get_closest_node(pi_wcoords);
+  Node end = get_closest_node(pf_wcoords);
+
+  // init A* algorithm
+  Envmap gscores(DIM, vector<double>(DIM, INFINITY));
+  Envmap hscores(DIM, vector<double>(DIM, INFINITY)); 
+  Envmap fscores(DIM, vector<double>(DIM, INFINITY));
+  Fathers fathers(DIM, vector<Node>(DIM)); 
+  Jointmap jointmap(DIM, vector<Matrix<double, 6, 1>>(DIM));
   
->>>>>>> f1224cb467ff0dce438994e4794012ad43c169db
+  jointmap[start.first][start.second] = joints;
+ 
+  init(start, end, gscores, hscores, fscores, fathers);
+  Path path = a_star(start, end, gscores, hscores, fscores, fathers, jointmap, euclidean_distance, close_to_collisions);
+  Path points = get_lines(path);
+
+  // for each point, convert into robots coordinates and move robot
+
+  for(int i = 1; i < points.size(); ++i) {
+    Vector3d dest = diffKin.fromWorldToUr5(Vector3d((double)points[i].first / DIM, (double)points[i].second / DIM, SET_HEIGHT));
+    move_to(dest, rpy, gripper);
+  }
+
+  cout << "[*] Last movement" << endl;
+  end_rcoords(2) = final_height;
+  move_to(end_rcoords, rpy, gripper);
+}
+
+
+void pick_and_place(Vector3d pick, Vector3d place, bool ultimo = false) {
+
+  Vector3d rpy; rpy << 0, 0, pi;
+
+  pick(2) = UP_HEIGHT;
+  move_collision_detection(pick, rpy, CLOSE_GRIP);
+
+  pick(2) = SUPER_DOWN_HEIGHT;
+  move_to(pick, rpy, OPEN_GRIP);
+
+  move_to(pick, rpy, CLOSE_GRIP);
+
+  pick(2) = UP_HEIGHT;
+  move_to(pick, rpy, CLOSE_GRIP);
+
+  place(2) = UP_HEIGHT;
+  move_collision_detection(place, rpy, CLOSE_GRIP);
+
+  place(2) = LITTLE_DOWN_HEIGHT;
+  if (ultimo)
+    place(2)-=0.04;
+  move_to(place, rpy, CLOSE_GRIP);
+
+  move_to(place, rpy, OPEN_GRIP);
+
+  place(2) = UP_HEIGHT;
+  move_to(place, rpy);
+  CLOSE_GRIP = 2.5;
+}
+
+void visionCallback(const vision::custMsg::ConstPtr& msg) {
+  if(is_moving) return;
+  is_moving = true;
+  std::cout << "[*] Received vision message, starting to move..." << std::endl;
+  std::cout << "[*] x: " << msg->x << std::endl;
+  std::cout << "[*] y: " << msg->y << std::endl;
+  std::cout << "[*] z: " << msg->z << std::endl;
+  std::cout << "[*] index: " << msg->index << std::endl;
+
+  Vector3d WorldCoords = Vector3d(msg->x, msg->y, msg->z);
+  if (msg->orient != 2) {
+    WorldCoords(0) += 0.06;
+  }
+
+  Vector3d Ur5Coords = invKin.fromWorldToUrd5(WorldCoords);
+  switch (positioned) {
+    case 0:
+      pick_and_place(Ur5Coords, invKin.fromWorldToUrd5(Vector3d(FINAL_POSITIONS_ASS4[positioned+1][0], FINAL_POSITIONS_ASS4[positioned+1][1], SUPER_DOWN_HEIGHT)));
+      positioned++;
+      break;
+    case 1:
+      pick_and_place(Ur5Coords, invKin.fromWorldToUrd5(Vector3d(FINAL_POSITIONS_ASS4[positioned+1][0], FINAL_POSITIONS_ASS4[positioned+1][1], SUPER_DOWN_HEIGHT)));
+      positioned++;
+      break;
+    case 2:
+      pick_and_place(Ur5Coords, invKin.fromWorldToUrd5(Vector3d(FINAL_POSITIONS_ASS4[0][0], FINAL_POSITIONS_ASS4[0][1], SUPER_DOWN_HEIGHT)), true);
+      positioned++;
+      break;
+    default:
+      break;
+  }
+
+  is_moving = false;
+}
+
+int main(int argc, char** argv) {
   ros::init(argc, argv, "custom_joint_publisher");
   ros::NodeHandle node;
-  is_moving = false;
+  is_moving = true;
   node.getParam("/real_robot", real_robot);
   invKin = InverseKinematic();
-<<<<<<< HEAD
-  finalDestination << 0.35, -0.35, DOWN_HEIGHT;
-=======
->>>>>>> f1224cb467ff0dce438994e4794012ad43c169db
+  diffKin = DifferentialKinematic();
 
   pub_des_jstate = node.advertise<std_msgs::Float64MultiArray>(
       "/ur5/joint_group_pos_controller/command", 1);
@@ -309,48 +237,22 @@ int main(int argc, char** argv) {
   sub =
       node.subscribe("/vision/blocksCoords", 1, visionCallback);
 
-  std::cout << "Waiting for vision message..." << std::endl;
 
   jointState_msg_sim.position.resize(9);
   jointState_msg_sim.velocity.resize(9);
   jointState_msg_sim.effort.resize(9);
   jointState_msg_robot.data.resize(9);
-
+  
   JointStateVector q_des_init;
-<<<<<<< HEAD
-  q_des_init << 0, 0, 0, 0, 0, 0, 0, 0, 0;
+  q_des_init << -0.32, -0.78, -2.56, -1.63, -1.57,  3.49, 0, 0, 0;
   initFilter(q_des_init);
-
   homing_procedure();
-  std::cout << "Reached home" << std::endl;
 
-=======
-  q_des_init << 0., 0., 0., 0., 0., 0., 0., 0., 0.;
-  initFilter(q_des_init);
+  cout << "[*] Waiting for vision message..." << endl;
 
->>>>>>> f1224cb467ff0dce438994e4794012ad43c169db
   while (ros::ok()) {
     ros::spinOnce();
   };
 
   return 0;
 }
-<<<<<<< HEAD
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-=======
->>>>>>> f1224cb467ff0dce438994e4794012ad43c169db
